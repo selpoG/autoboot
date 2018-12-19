@@ -4,7 +4,7 @@ BeginPackage["GroupInfo`"]
 
 (* Supported groups are direct products of finite groups and some lie groups. *)
 (* Supported finite groups are those whose irreps was calculated by GAP (in sgd folder), and any dihedral and quartenion groups. *)
-(* Supported lie groups are su[2], o[2], so[2]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
+(* Supported lie groups are su[2], so[2], o[2], so[3], o[3]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
 getGroup::usage = "getGroup[g,i] loads data from sg.g.i.m and returns group-object group[g,i]. g is the order of the finite group, i is the number of the group assined by GAP."
 product::usage = "product[g1,g2] returns group-object pGroup[g1,g2] which represents direct product of two group-object g1, g2."
 group::usage = "group[g,i] is a group-object whose order is g and whose number assigned by GAP is i. Before using this value, you have to call getGroup[g,i] to get proper group-object."
@@ -31,6 +31,9 @@ i[a,b] is one-dimensional irrep-object with sign a,b. This is recognised only by
 minrep::usage = "minrep[r,s] gives r if r < s else s. r and s are irrep-objects."
 setGroup::usage = "setGroup[G] loads inv.m with global symmetry G. This action clears all values calculated by inv.m previously."
 available::usage = "available[g,i] gives whether group[g,i] are supported or not."
+
+(* all irrep-objects of G=group[g,i] are rep[1], rep[2], ..., rep[n] (n=G[ncg]). *)
+(* all irrep-objects of pGroup[g1,g2] are rep[r1,r2], where r1 is a irrep-object of g1 and r2 is a irrep-object of g2. minrep compares irreps in lexical order. *)
 
 Begin["`Private`"]
 
@@ -101,14 +104,16 @@ product[g1_, g2_] := AbortProtect @ Module[{G, r1, r2, s1, s2, g},
 		T2 = g2[prod[r2, s2]];
 		MyReap @ Do[Sow[rep[t1, t2]], {t1, T1}, {t2, T2}]
 	];
-	G[dual[rep[r1_, r2_]]] := rep[g1[dual[r1]], g2[dual[r2]]];, su[2], so[3], o[2], so[2]
-	G[isrep[_]] := False;, su[2], so[3], o[2], so[2]
-	G[isrep[rep[r1_, r2_]]] := g1[isrep[r1]] && g2[isrep[r2]];, su[2], so[3], o[2], so[2]
-	G[gG] = Join[G[1, #]& /@ g1[gG], G[2, #]& /@ g2[gG]];, su[2], so[3], o[2], so[2]
-	G[gA] = Join[G[1, #]& /@ g1[gA], G[2, #]& /@ g2[gA]];, su[2], so[3], o[2], so[2]
-	G[1, g_][rep[r1_, r2_]] := G[1, g][rep[r1, r2]] = Kronecke, su[2], so[3], o[2], so[2]rProduct[g[r1], IdentityMatrix[g2[dim[r2]]]];
-	G[2, g_][rep[r1_, r2_]] := G[2, g][rep[r1, r2]] = Kronecke, su[2], so[3], o[2], so[2]rProduct[IdentityMatrix[g1[dim[r1]]], g[r2]];
-	G[minrep[rep[r1_, r2_], rep[s1_, s2_]]] := rep[g1[minrep[r, su[2], so[3], o[2], so[2]1, s1]], g2[minrep[r2, s2]]];
+	G[dual[rep[r1_, r2_]]] := rep[g1[dual[r1]], g2[dual[r2]]];
+	G[isrep[_]] := False;
+	G[isrep[rep[r1_, r2_]]] := g1[isrep[r1]] && g2[isrep[r2]];
+	G[gG] = Join[G[1, #]& /@ g1[gG], G[2, #]& /@ g2[gG]];
+	G[gA] = Join[G[1, #]& /@ g1[gA], G[2, #]& /@ g2[gA]];
+	G[1, g_][rep[r1_, r2_]] := G[1, g][rep[r1, r2]] = KroneckerProduct[g[r1], IdentityMatrix[g2[dim[r2]]]];
+	G[2, g_][rep[r1_, r2_]] := G[2, g][rep[r1, r2]] = KroneckerProduct[IdentityMatrix[g1[dim[r1]]], g[r2]];
+	G[minrep[rep[r1_, r2_], rep[r1_, s2_]]] := rep[r1, g2[minrep[r2, s2]]];
+	G[minrep[rep[r1_, r2_], rep[s1_, s2_]]] /; g1[minrep[r1, s1]] == r1 := rep[r1, r2];
+	G[minrep[rep[r1_, r2_], rep[s1_, s2_]]] := rep[s1, s2];
 	G
 ]
 

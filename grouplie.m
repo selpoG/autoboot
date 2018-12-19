@@ -9,6 +9,12 @@ su::usage = "su[n] is a group-object which is the special unitary group of rank 
 o::usage = "o[n] is a group-object which is the orthogonal group of rank n. Before using this value, you have to call getO[n] to get proper group-object."
 so::usage = "so[n] is a group-object which is the special orthogonal group of rank n. Before using this value, you have to call getSO[n] to get proper group-object."
 
+(* all irrep-objects of G=su[2] are v[0], v[1/2], v[1], v[3/2], .... *)
+(* all irrep-objects of G=o[3] are v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], .... *)
+(* all irrep-objects of G=so[3] are v[0], v[1], v[2], v[3], .... *)
+(* all irrep-objects of G=o[2] are i[1], i[-1], v[1], v[2], v[3], .... *)
+(* all irrep-objects of G=so[2] are v[x] (x \in \mathbb{R}). *)
+
 Begin["`Private`"]
 
 CommonFunctions`importPackage["GroupInfo`", "GroupInfoLie`Private`", {"id", "dim", "prod", "dual", "isrep", "gG", "gA", "minrep", "v", "i"}]
