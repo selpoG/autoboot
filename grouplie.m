@@ -2,12 +2,12 @@ Needs["GroupInfo`", "group.m"]
 
 BeginPackage["GroupInfoLie`"]
 
-getSU::usage = "getSU[n]"
-getO::usage = "getO[n]"
-getSO::usage = "getSO[n]"
-su::usage = "su[n]"
-o::usage = "o[n]"
-so::usage = "so[n]"
+getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of rank n. n must be 2."
+getO::usage = "getO[n] returns group-object o[n] which represents the orthogonal group of rank n. n must be 2,3."
+getSO::usage = "getSO[n] returns group-object su[n] which represents the special orthogonal group of rank n. n must be 2,3."
+su::usage = "su[n] is a group-object which is the special unitary group of rank n. Before using this value, you have to call getSU[n] to get proper group-object."
+o::usage = "o[n] is a group-object which is the orthogonal group of rank n. Before using this value, you have to call getO[n] to get proper group-object."
+so::usage = "so[n] is a group-object which is the special orthogonal group of rank n. Before using this value, you have to call getSO[n] to get proper group-object."
 
 Begin["`Private`"]
 
