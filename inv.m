@@ -5,44 +5,48 @@ ClebschGordan`clearCG[];
 
 BeginPackage["ClebschGordan`"]
 
-symmetryGroup::usage = "symmetryGroup"
-clearCG::usage = "clearCG[]"
+symmetryGroup::usage = "symmetryGroup represents the global symmetry of CFT."
+clearCG::usage = "clearCG[] clears all values calculated by this package."
 
-inv::usage = "inv[r,s,t]
-inv[{r,s},{t}]
-inv[r1,r2,r3,r4]"
-invs::usage = "invs[r1,r2,r3,r4]"
+(* r,s,t,r1,r2 must be irrep-objects, i.e. such as symmetryGroup[isrep[r]] must be True *)
+(* id means the trivial representation of symmetryGroup. *)
+inv::usage = "inv[r,s,t] gives multiplicity of id in decomposition of r\[TensorProduct]s\[TensorProduct]t.
+inv[{r,s},{t}] gives multiplicity of t in decomposition of r\[TensorProduct]s.
+inv[r1,r2,r3,r4] gives an association whose key is a irrep s s.t. inv[{r1,r2},{s}]>0 and inv[r3,r4,s]>0, whose value is a list {inv[{r1,r2},{s}],inv[r3,r4,s]}."
+invs::usage = "invs[r1,r2,r3,r4] gives a list of {s,n,m} s.t. cor[r1,r2,r3,r4][s,n,m] is defined."
 
-ope::usage = "ope[r,s,t][n][a,b,c]
-ope[r][a,b]"
-cor::usage = "cor[r,s,t][n][a,b,c]
-cor[r1,r2,r3,r4][s,n,m][a1,a2,a3,a4]"
+(* a,b,c,a1,a2,... are indices of irreps. An index a of irrep r must sutisfy 1<=a<=symmetryGroup[dim[r]]. *)
+(* n,m represents multiplicity of Clebsch-Gordan coefficients. For more information, please refer to autoboot.pdf. *)
+ope::usage = "ope[r,s,t][n][a,b,c] gives Clebsch-Gordan coefficient defined by |r,a\[RightAngleBracket]\[TensorProduct]|s,b\[RightAngleBracket]=\[Sum]ope[r,s,t][n][a,b,c]|t,c,n\[RightAngleBracket].
+ope[r][a,b] gives Sqrt[dim[r]]ope[r,dual[r],id][1][a,b,1]."
+cor::usage = "cor[r,s,t][n][a,b,c] gives \[Sum]ope[r,s,dual[t]][n][a,b,c2] ope[dual[t]][c2,c]/Sqrt[dim[t]].
+cor[r1,r2,r3,r4][s,n,m][a1,a2,a3,a4] gives \[Sum]cor[r1,r2,dual[s]][n][a1,a2,b] ope[r3,r4,dual[s]][a3,a4,b]."
 
-\[Sigma]::usage = "\[Sigma][r,s,t][n]
-\[Sigma][r]
-\[Sigma][op[x,r,p,q]]"
-\[Tau]::usage = "\[Tau][r,s,t][n,m]"
-\[Omega]::usage = "\[Omega][r,s,t][n,m]"
-six::usage = "six[r1,r2,r3,r4][s,n,m,t,k,l]"
+\[Sigma]::usage = "\[Sigma][r,s,t][n] gives the sign change in swap between r and s in cor, i.e. cor[r,s,t][n][a,b,c]=\[Sigma][r,s,t][n]cor[s,r,t][n][b,a,c].
+\[Sigma][r] gives \[Sigma][r,dual[r],id].
+\[Sigma][op[x,r,p,q]] gives p."
+\[Tau]::usage = "\[Tau][r,s,t][n,m] describes the behavior of cor under cyclic permutation of r,s,t, i.e. cor[s,t,r][m][b,c,a]=\[Sum]cor[r,s,t][n][a,b,c]\[Tau][r,s,t][n,m]."
+\[Omega]::usage = "\[Omega][r,s,t][n,m] describes the behavior of cor under complex conjugate, i.e. \[Sum]ope[dual[r]][a2,a] ope[dual[s]][b2,b] ope[dual[t]][c2,c] cor[dual[r],dual[s],dual[t]][m][a2,b2,c2]\[Conjugate]=\[Sum]cor[r,s,t][n][a,b,c]\[Omega][r,s,t][n,m]."
+six::usage = "six[r1,r2,r3,r4][s,n,m,t,k,l] describes the behavior of cor under swap between r2 and r4, i.e. cor[r1,r4,r3,r2][t,k,l][a1,a4,a3,a2]=\[Sum]cor[r1,r2,r3,r4][s,n,m][a1,a2,a3,a4] six[r1,r2,r3,r4][s,n,m,t,k,l]."
 
-isReal::usage = "isReal[r]"
-isComplex::usage = "isComplex[r]"
-isPseaudo::usage = "isPseaudo[r]"
+isReal::usage = "isReal[r] gives whether r is a real representation or not."
+isComplex::usage = "isComplex[r] gives whether r is a complex representation or not."
+isPseaudo::usage = "isPseaudo[r] gives whether r is a pseaudo real representation or not."
 
-op::usage = "op[x,r,p,q]"
-dualOp::usage = "dualOp[op[x,r,p,q]]"
+op::usage = "op[x,r,p,q] represents a primary operator object O whose name is x, which belongs to irrep r, which sign (=\[Sigma][O]) is p and whose parity of spin is q (=±1). If O appears in summation, we use 'op' as its name."
+dualOp::usage = "dualOp[op[x,r,p,q]] gives dual operator object of op[x,r,p,q]."
 
-format::usage = "format[eq]"
+format::usage = "format[eq] gives readable format of eq with little loss of information. We need much redundancy to calculate properly, so formatted value cannot be used for any argument of our function. format[eq] is assumed to be used only for human-readability of last output."
 
-sum::usage = "sum[x,op[o,r,1,q]]"
-single::usage = "single[x]"
+sum::usage = "sum[x,op[o,r,1,q]] represents sum of x over all intermediate primary operator O=op[op,r,1,q] which belongs to irrep r and whose parity of spin is q. sum[...] is automatically expanded so as x to be (F or H)*\[Beta]^2."
+single::usage = "single[x] represents x. We need to wrap x for redundancy. single[...] is automatically expanded so as x to be (Fp or Hp)*\[Beta]^2, or (Fp or Hp)."
 
-F::usage = "F[o1,o2,o3,o4,s,p]
-F[a,b,c,d]"
-H::usage = "H[a,b,c,d]"
-Fp::usage = "Fp[o1,o2,o3,o4,s,p]
-Fp[a,b,c,d,o]"
-Hp::usage = "Hp[a,b,c,d,o]"
+F::usage = "F[o1,o2,o3,o4,s,p] represents generalized conformal block "<>ToString[Subsuperscript["F", {"p", "s"}, {1, 2, 3, 4}], StandardForm]<>" , where o1,...,o4 are primary scalars.
+F[a,b,c,d] represents normal conformal block of type-F."
+H::usage = "H[a,b,c,d] represents normal conformal block of type-H."
+Fp::usage = "Fp[o1,o2,o3,o4,o] represents generalized conformal block "<>ToString[Subsuperscript["F", {"o"}, {1, 2, 3, 4}], StandardForm]<>" , where o1,...,o4 and intermediate o are primary scalars.
+Fp[a,b,c,d,o] represents normal conformal block of type-F with intermediate o."
+Hp::usage = "Hp[a,b,c,d,o] represents normal conformal block of type-H with intermediate o."
 
 \[Lambda]::usage = "\[Lambda][o1,o2,o3][n]"
 \[Alpha]::usage = "\[Alpha][o1,o2,o3][n]"
