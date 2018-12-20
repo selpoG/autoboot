@@ -48,19 +48,21 @@ Fp::usage = "Fp[o1,o2,o3,o4,o] represents generalized conformal block "<>ToStrin
 Fp[a,b,c,d,o] represents normal conformal block of type-F with intermediate o."
 Hp::usage = "Hp[a,b,c,d,o] represents normal conformal block of type-H with intermediate o."
 
-\[Lambda]::usage = "\[Lambda][o1,o2,o3][n]"
-\[Alpha]::usage = "\[Alpha][o1,o2,o3][n]"
-\[Mu]::usage = "\[Mu][o1,o2,o3][n]"
-\[Nu]::usage = "\[Nu][o1,o2,o3][n]"
-\[Beta]::usage = "\[Beta][o1,o2,o3][n]"
+\[Lambda]::usage = "\[Lambda][o1,o2,o3][n] gives n-th OPE coefficient of o1\[Times]o2\[Rule]"<>ToString[OverBar["o3"], StandardForm]<>"."
+\[Alpha]::usage = "\[Alpha][o1,o2,o3][n] gives n-th coefficient of three-point function \[LeftAngleBracket]o1 o2 o3\[RightAngleBracket]."
+\[Mu]::usage = "\[Mu][o1,o2,o3][n] gives n-th OPE coefficient of o1\[Times]o2\[Rule]"<>ToString[OverBar["o3"], StandardForm]<>", where o3 is registered as a fundamental scalar."
+\[Nu]::usage = "\[Nu][o1,o2,o3][n] gives n-th coefficient of three-point function \[LeftAngleBracket]o1 o2 o3\[RightAngleBracket], where o3 is registered as a fundamental scalar."
+(* \[Lambda], \[Alpha], \[Mu] and \[Nu] are linear combination of \[Beta]. *)
+\[Beta]::usage = "\[Beta][o1,o2,o3][n] gives minimal basis to describe \[Lambda], \[Alpha], etc.."
 
-eqn::usage = "eqn[{a,b,...}]
-eqn[sec,{a,b,...}]"
-bootAll::usage = "bootAll[ops]
-bootAll[]"
+eqn::usage = "eqn[{a,b,...}] represents bootstrap equation that claims a,b,... must equals to 0, where a,b,... are real-linear combination of sum and single.
+eqn[sec,{a,b,...}] represents extracted part of eqn[{...}] which contains only sum or single related to sec."
+bootAll::usage = "bootAll[ops] generates bootstrap equation from all four-point function of ops.
+bootAll[] generates bootstrap equation from all four-point function of fundamental scalars."
 
-setOps::usage = "setOps[ops]"
-one::usage = "one"
+(* fundamental scalars are used to seperate sum of conformal blocks over scalars to single[...] and sum[...]. *)
+setOps::usage = "setOps[ops] registers ops and duals of ops as fundamental scalars."
+one::usage = "one represents unit operator. This is implicitly registered as a fundamental scalar."
 
 extract::usage = "extract[x,op[op,r,1,p]]
 extract[x,scalar]
