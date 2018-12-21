@@ -38,7 +38,7 @@ dualOp::usage = "dualOp[op[x,r,p,q]] gives dual operator object of op[x,r,p,q]."
 
 format::usage = "format[eq] gives readable format of eq with little loss of information. We need much redundancy to calculate properly, so formatted value cannot be used for any argument of our function. format[eq] is assumed to be used only for human-readability of last output."
 
-sum::usage = "sum[x,op[o,r,1,q]] represents sum of x over all intermediate primary operator O=op[op,r,1,q] which belongs to irrep r and whose parity of spin is q. sum[...] is automatically expanded so as x to be (F or H)*\[Beta]^2."
+sum::usage = "sum[x,op[op,r,1,q]] represents sum of x over all intermediate primary operator O=op[op,r,1,q] which belongs to irrep r and whose parity of spin is q. sum[...] is automatically expanded so as x to be (F or H)*\[Beta]^2."
 single::usage = "single[x] represents x. We need to wrap x for redundancy. single[...] is automatically expanded so as x to be (Fp or Hp)*\[Beta]^2, or (Fp or Hp)."
 
 F::usage = "F[o1,o2,o3,o4,s,p] represents generalized conformal block "<>ToString[Subsuperscript["F", {"p", "s"}, {1, 2, 3, 4}], StandardForm]<>" , where o1,...,o4 are primary scalars.
@@ -64,26 +64,25 @@ bootAll[] generates bootstrap equation from all four-point function of fundament
 setOps::usage = "setOps[ops] registers ops and duals of ops as fundamental scalars."
 one::usage = "one represents unit operator. This is implicitly registered as a fundamental scalar."
 
-extract::usage = "extract[x,op[op,r,1,p]]
-extract[x,scalar]
-extract[x,unit]"
-unit::usage = "unit"
-scalar::usage = "scalar"
-sector::usage = "sector[eq]"
+(* extract is a projection. x==extract[x,unit]+extract[x,scalar]+\[Sum]_{r,p}extract[x,op[op,r,1,p]] and extract[x,sec]==extract[extract[x,sec]]. *)
+extract::usage = "extract[x,op[op,r,1,p]] extracts terms of the form sum[...,op[op,r,1,p]] from x.
+extract[x,scalar] extracts terms of the form single[(Fp or Hp)*\[Beta]^2] from x.
+extract[x,unit] extracts terms of the form single[Fp or Hp] from x (contribution of unit operator)."
+unit::usage = "unit is a option for extract and means contribution of unit operator."
+scalar::usage = "scalar is a option for extract and means contribution of fundamental scalars but unit operator."
+sector::usage = "sector[eq] gives a list of all nontrivial option sec for extract applied to eq, i.e. {sec | extract[eq,sec]!=0}. "
 
-makeG::usage = "makeG[eqn[sec,{a,b,...}]]"
-makeMat::usage = "makeMat[eqn[sec,{a,b,...}]]"
-makeSDP::usage = "makeSDP[eqn[{a,b,...}]]"
-sdp::usage = "sdp[secs,scalarnum,vals,mat]"
-toString::usage = "toString[sdp]"
+makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertices are OPE coefficients \[Beta] in extracted bootstrap equation eqn[sec,{a,b,...}]."
+makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
+makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
+sdp::usage = "sdp[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
+toString::usage = "toString[sdp] converts sdp-object into python code for cboot."
 
 Begin["`Private`"]
 
-setOPE::usage = "setOPE[r,s,t]
-setOPE[r,s]"
-setAllOPE::usage = "setAllOPE[reps]"
-boot::usage = "boot[o1,o2,o3,o4,s,p]"
-connectedComponents::usage = "connectedComponents[z]"
+setOPE::usage = "setOPE[r,s,t] calculates all values of ope[r,s,t].
+setOPE[r,s] calls setOPE[r,s,t] for all t in prod[r,s]."
+setAllOPE::usage = "setAllOPE[reps] calls setOPE[r,s] and setOPE[t,dual[t],id] for all r,s in reps and t in prod[r,s]."
 
 CommonFunctions`importPackage["CommonFunctions`", "ClebschGordan`Private`", {"importPackage", "lhs", "rhs", "MyReap", "newUF", "newSet", "classify", "keys", "add", "reverseIndex", "zero", "root", "unite", "has"}]
 setGroup[G_] := AbortProtect @ Module[{x, name = "ClebschGordan`Private`"},
@@ -105,6 +104,7 @@ x:inv[r1_, r2_, r3_, r4_] := x = Module[{s}, Association @ Table[
 x:invs[r1_, r2_, r3_, r4_] := x = Module[{t = inv[r1, r2, r3, r4], s, n, m},
 	MyReap @ Do[Sow[{s, n, m}], {s, Keys[t]}, {n, t[s][[1]]}, {m, t[s][[2]]}]]
 
+(* eq[r,s,t] gives equations which Clebsch-Gordan coefficients {a,b/r,s|c/t} must satisfy. *)
 eq[r_, s_, t_] /; inv[{r, s}, {t}] > 0 :=
 Module[{a, b, c, x, y, z, X, g, e, d1 = dim[r], d2 = dim[s], d3 = dim[t], d},
 	d = d1 d2 d3;
@@ -190,9 +190,14 @@ x:cor[r1_, r2_, r3_, r4_][s_, n_, m_][a1_, a2_, a3_, a4_] /;
 	1 <= n <= inv[{r1, r2}, {s}] && 1 <= m <= inv[r3, r4, s] := (setCor[r1, r2, r3, r4, s]; x)
 cor[_, _, _, _][_, _, _][_, _, _, _] := 0
 
+(* decompose invariant tensor f into linear combination of cor[r,s,t][n]. *)
 dec[r_, s_, t_][f_] := Module[{vec},
 	decPrep[r, s, t]; vec = Array[{f @@ bas[r, s, t][#]} &, inv[r, s, t]]; simp @ Flatten[invmat[r, s, t].vec]]
 
+(* decPrep[r,s,t] prepares bas[r,s,t][n] and invmat for dec.
+dec could be done by just taking inner-product, but most of cor[r,s,t][n][a,b,c] are zero, we need decPrep for more efficiency.
+bas[r,s,t] are sufficient components to distinguish invariant tensors.
+mat is a matrix whose components are values of cor[r,s,t][n] evaluated at bas[r,s,t], and invmat is its inverse. *)
 x:decPrep[r_, s_, t_] /; inv[r, s, t] > 0 := x =
 Module[{n, f = cor[r, s, t], max = inv[r, s, t], mat, rev, new, old, sc, a, b, c, tmp, tmp2, res},
 	Do[If[f[1][a, b, c] != 0, res[1] = {a, b, c}; mat = {{f[1][a, b, c]}}; rev = Inverse[mat]; Break[]]
@@ -545,12 +550,14 @@ toString[sdp[secs_, scalarnum_, vals_, mat_]] :=
 		rmats = newSet[];
 		smats = newSet[];
 		filename = StringRiffle[TemplateApply["{0[`k`]}", <|"k" -> #|>] & /@ DeleteDuplicates[#[[1]] & /@ keys[allopsForBoot]], "-"];
+		(* convert elements of mats into string. *)
 		convert[0] = "0";
 		convert[block[1, 1, bl_]] := TemplateApply["bl[`i`]", <|"i" -> blk[bl]|>];
 		convert[block[-1, 1, bl_]] := TemplateApply["-bl[`i`]", <|"i" -> blk[bl]|>];
 		convert[block[1, v_, bl_]] := TemplateApply["val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
 		convert[block[-1, v_, bl_]] := TemplateApply["-val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
 		convert[x_Plus] := convert[x[[1]]] <> StringJoin[Table[If[y[[1]] > 0, " + " <> convert[y], " - " <> convert[block[1, y[[2]], y[[3]]]]], {y, Rest[x]}]];
+		(* assign indices to block *)
 		f[x_List] := Scan[f, x];
 		f[x_Plus] := Scan[f, List @@ x];
 		f[block[_, _, bl_]] := If[!KeyExistsQ[blk, bl], blk[bl] = Length[blk];];
