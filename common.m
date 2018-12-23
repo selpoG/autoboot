@@ -1,34 +1,34 @@
 BeginPackage["CommonFunctions`"]
 
-e::usage = "e[n]
-e[n, m]"
-MyReap::usage = "MyReap[x]"
-DoMany::usage = "DoMany[x,{y}]"
-dupcomb::usage = "dupcomb[x,k]"
-removeSGs::usage = "removeSGs[]"
-lhs::usage = "lhs[x==y]"
-rhs::usage = "rhs[x==y]"
-importPackage::usage = "importPackage[from,to,symbol]
-importPackage[from,to,symbols]"
-zero::usage = "zero[x==y]"
+e::usage = "e[n] gives n-th root of 1 with minimum positive argument.
+e[n, m] gives m-th power of e[n]."
+MyReap::usage = "MyReap[x] gives a list of values sowed in evaluation of x."
+DoMany::usage = "DoMany[x,{y}] evaluates Do[x,y]. For example, DoMany[x,{{a,3},{b,4},{c,2,5}}] is equivalent to Do[x,{a,3},{b,4},{c,2,5}]."
+dupcomb::usage = "dupcomb[x,k] gives a list of sorted selection of k elements from x with repetition."
+removeSGs::usage = "removeSGs[] removes all SmallGroup and LieGroup packages from ContextPath."
+lhs::usage = "lhs[x==y] gives left-hand side x."
+rhs::usage = "rhs[x==y] gives right-hand side y."
+importPackage::usage = "importPackage[from,to,symbol] imports 'symbols' in package 'from' to package 'to'. 'symbols' can be one symbol or a list of symbols."
+zero::usage = "zero[x==y] gives x-y, which equation asserts to be zero."
 
-newSet::usage = "newSet[]
-newSet[x]"
-set::usage = "set[_]"
-newUF::usage = "newUF[]"
-uf::usage = "uf[_]"
-add::usage = "add[s, v]
-add[u, v]"
-has::usage = "has[s, v]"
-remove::usage = "add[s, v]"
-clear::usage = "clear[s]"
-keys::usage = "keys[s]"
-size::usage = "size[s]"
-root::usage = "root[u, v]"
-unite::usage = "unite[u, u, v]"
-classify::usage = "classify[u]"
+(* any instance of a set or union-find tree has inner state and methods are destructive (not pure function). *)
+newSet::usage = "newSet[] creates an instance of an empty set.
+newSet[x] creates an instance of a set with elements in x."
+set::usage = "set[_] represents an instance of a set."
+newUF::usage = "newUF[] creates an instance of an empty union-find tree."
+uf::usage = "uf[_] represents an instance of a union-find tree."
+add::usage = "add[s, v] adds a element v to a set s.
+add[u, v] adds a vertex v to a union-find tree s."
+has::usage = "has[s, v] gives a set s has a element v or not."
+remove::usage = "remove[s, v] removes a element v from a set s."
+clear::usage = "clear[s] removes all elements from s."
+keys::usage = "keys[s] gives a list of all elements in s."
+size::usage = "size[s] gives a number of elements in s."
+root::usage = "root[u, v] gives a root vertex of a vertex v in a union-find tree u."
+unite::usage = "unite[u, v1, v2] puts vertices v1 and v2 in the same category in union-find tree u."
+classify::usage = "classify[u] gives a list of connected components in union-find tree u. Each component is a list of vertices in the same category."
 
-reverseIndex::usage = "reverseIndex[x]"
+reverseIndex::usage = "reverseIndex[x] gives an association d s.t. d[x[[i+1]]]=i for all 0<=i<Length[x]. x is assumed to be a duplicate-free list."
 
 Begin["`Private`"]
 
