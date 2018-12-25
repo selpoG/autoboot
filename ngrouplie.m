@@ -2,12 +2,18 @@ Needs["NGroupInfo`", "ngroup.m"]
 
 BeginPackage["NGroupInfoLie`"]
 
-getSU::usage = "getSU[n]"
-getO::usage = "getO[n]"
-getSO::usage = "getSO[n]"
-su::usage = "su[n]"
-o::usage = "o[n]"
-so::usage = "so[n]"
+getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of rank n. n must be 2."
+getO::usage = "getO[n] returns group-object o[n] which represents the orthogonal group of rank n. n must be 2,3."
+getSO::usage = "getSO[n] returns group-object su[n] which represents the special orthogonal group of rank n. n must be 2,3."
+su::usage = "su[n] is a group-object which is the special unitary group of rank n. Before using this value, you have to call getSU[n] to get proper group-object."
+o::usage = "o[n] is a group-object which is the orthogonal group of rank n. Before using this value, you have to call getO[n] to get proper group-object."
+so::usage = "so[n] is a group-object which is the special orthogonal group of rank n. Before using this value, you have to call getSO[n] to get proper group-object."
+
+(* all irrep-objects of G=su[2] are v[0], v[1/2], v[1], v[3/2], .... *)
+(* all irrep-objects of G=o[3] are v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], .... *)
+(* all irrep-objects of G=so[3] are v[0], v[1], v[2], v[3], .... *)
+(* all irrep-objects of G=o[2] are i[1], i[-1], v[1], v[2], v[3], .... *)
+(* all irrep-objects of G=so[2] are v[x] (x \in \mathbb{R}). *)
 
 Begin["`Private`"]
 

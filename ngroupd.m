@@ -2,10 +2,14 @@ Needs["NGroupInfo`", "ngroup.m"]
 
 BeginPackage["NGroupInfoD`"]
 
-getDihedral::usage = "getDihedral[n]"
-getDicyclic::usage = "getDicyclic[n]"
-dih::usage = "dih[n]"
-dic::usage = "dic[n]"
+getDihedral::usage = "getDihedral[n] returns group-object dih[n] which represents the dihedral group of order 2n."
+getDicyclic::usage = "getDicyclic[n] returns group-object dic[n] which represents the dicyclic group of order 4n."
+dih::usage = "dih[n] is a group-object which is the dihedral group of order 2n. Before using this value, you have to call dih[n] to get proper group-object."
+dic::usage = "dic[n] is a group-object which is the dicyclic group of order 4n. Before using this value, you have to call dic[n] to get proper group-object."
+
+(* if n is even, all irrep-objects of dih[n] are i[1,1], i[1,-1], i[-1,1], i[-1,-1], v[1], ..., v[n/2-1]. *)
+(* if n is odd, all irrep-objects of dih[n] are i[1], i[-1] v[1], ..., v[(n-1)/2]. *)
+(* all irrep-objects of dic[n] are i[1,1], i[1,-1], i[-1,1], i[-1,-1], v[1], ..., v[n-1]. *)
 
 Begin["`Private`"]
 

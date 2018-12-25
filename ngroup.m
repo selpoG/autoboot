@@ -2,27 +2,40 @@ Needs["CommonFunctions`", "common.m"]
 
 BeginPackage["NGroupInfo`"]
 
-getGroup::usage = "getGroup[g,i]"
-product::usage = "product[g1,g2]"
-group::usage = "group[g,i]"
-pGroup::usage = "pGroup[g1,g2]"
-ncg::usage = "ncg"
-ct::usage = "ct[g]"
-id::usage = "id[g]"
-dim::usage = "dim[r]"
-prod::usage = "prod[r,s]"
-dual::usage = "dual[r]"
-isrep::usage = "isrep[r]"
-gG::usage = "gG"
-gA::usage = "gA"
-rep::usage = "rep[n]"
-v::usage = "v[n]
-v[n,s]"
-i::usage = "i[a,b]"
-minrep::usage = "minrep[r,s]"
-setGroup::usage = "setGroup[G]"
-available::usage = "available[g,i]"
-setPrecision::usage = "setPrecision[prec]"
+(* Supported groups are direct products of finite groups and some lie groups. *)
+(* Supported finite groups are those whose irreps was calculated by GAP (in sgd folder), and any dihedral and quartenion groups. *)
+(* Supported lie groups are su[2], so[2], o[2], so[3], o[3]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
+getGroup::usage = "getGroup[g,i] loads data from sg.g.i.m and returns group-object group[g,i]. g is the order of the finite group, i is the number of the group assined by GAP."
+product::usage = "product[g1,g2] returns group-object pGroup[g1,g2] which represents direct product of two group-object g1, g2."
+group::usage = "group[g,i] is a group-object whose order is g and whose number assigned by GAP is i. Before using this value, you have to call getGroup[g,i] to get proper group-object."
+pGroup::usage = "pGroup[g1,g2] is a group-object which is a direct product of g1, g2. Before using this value, you have to call product[g1,g2] to get proper group-object."
+(* group-object g has attributes ncg, ct, id, dim, prod, dual, isrep, gG, gA, minrep. *)
+(* You can evaluate attributes in putting it in g[...]. *)
+(* For example, g[dim[r]] gives the dimension of irrep r. *)
+ncg::usage = "ncg is the number of conjugacy classes, which is also the number of inequivalent irreps. This is not defined for lie groups."
+ct::usage = "ct is the character table. This is not defined for lie groups."
+id::usage = "id is the trivial representation."
+dim::usage = "dim[r] is the dimension of irrep r."
+prod::usage = "prod[r,s] gives a list of all irreps arising in irreducible decomposition of direct product representation of r and s. prod[r,s] may not be duplicate-free."
+dual::usage = "dual[r] gives dual representation of irrep r."
+isrep::usage = "isrep[r] gives whether r is recognised as a irrep-object of the group-object or not."
+gG::usage = "gG is a list of all generator-objects of finite group part of the group-object."
+gA::usage = "gA is a list of all generator-objects of lie algebra part of the group-object."
+rep::usage = "rep[n] is n-th irrep-object (n is assined by GAP and corresponds to the index of ct). This is recognised only by group[g,i].
+rep[r1,r2] is natural irrep-object of pGroup[g1,g2] where r1 is irrep-object of g1, r2 is irrep-object of g2. This is recognised only by pGroup[g1,g2]."
+v::usage = "v[n] is spin-n irrep-object. This is recognised only by dih[n], dic[n], su[2], so[3], o[2] and so[2].
+v[n,s] is spin-n irrep-object with sign s. This is recognised only by o[3]."
+i::usage = "i[a] is one-dimensional irrep-object with sign a. This is recognised only by dih[n] (n: odd) and o[2].
+i[a,b] is one-dimensional irrep-object with sign a,b. This is recognised only by dih[n] (n:even), dic[n]."
+(* We need all irreps to be sorted in some linear order. *)
+minrep::usage = "minrep[r,s] gives r if r < s else s. r and s are irrep-objects."
+setGroup::usage = "setGroup[G] loads inv.m with global symmetry G. This action clears all values calculated by inv.m previously."
+available::usage = "available[g,i] gives whether group[g,i] are supported or not."
+setPrecision::usage = "After calling setPrecision[prec], all calculation in this package will be done in precision prec and any number less than "<>ToString[Superscript[10,"prec-10"]]<>" will be choped. "<>
+"It is assumed that prec is sufficiently bigger than 10 and setPrecision is called just once just after loading this package."
+
+(* all irrep-objects of G=group[g,i] are rep[1], rep[2], ..., rep[n] (n=G[ncg]). *)
+(* all irrep-objects of pGroup[g1,g2] are rep[r1,r2], where r1 is a irrep-object of g1 and r2 is a irrep-object of g2. minrep compares irreps in lexical order. *)
 
 Begin["`Private`"]
 
@@ -52,7 +65,7 @@ available[1, 1] = True;
 x:available[g_, i_] := x = FileExistsQ[TemplateApply["sgd/sg.`g`.`i`.m", <|"g" -> g, "i" -> i|>]]
 
 precision = Null;
-setPrecision::dup = "prec has changed from `1` to `2`. setPrecision is assumed to be called only once.";
+setPrecision::dup = "prec has changed from `1` to `2`. setPrecision is assumed to be called only once. Some values may be incorrect.";
 setPrecision[prec_?NumericQ] := (If[precision =!= Null, Message[setPrecision::dup, precision, prec]]; precision = prec; epsilon = 10^(-prec + 10);)
 num[x_] := Chop[N[x, precision], epsilon]
 
