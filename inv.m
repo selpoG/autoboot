@@ -57,8 +57,8 @@ Hp::usage = "Hp[a,b,c,d,o] represents normal conformal block of type-H with inte
 
 eqn::usage = "eqn[{a,b,...}] represents bootstrap equation that claims a,b,... must equals to 0, where a,b,... are real-linear combination of sum and single.
 eqn[sec,{a,b,...}] represents extracted part of eqn[{...}] which contains only sum or single related to sec."
-bootAll::usage = "bootAll[ops] generates bootstrap equation from all four-point function of ops.
-bootAll[] generates bootstrap equation from all four-point function of fundamental scalars."
+bootAll::usage = "bootAll[ops] generates bootstrap equation from all four-point functions of ops.
+bootAll[] generates bootstrap equation from all four-point functions of fundamental scalars."
 
 (* fundamental scalars are used to seperate sum of conformal blocks over scalars to single[...] and sum[...]. *)
 setOps::usage = "setOps[ops] registers ops and duals of ops as fundamental scalars."
