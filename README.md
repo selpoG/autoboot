@@ -2,6 +2,12 @@
 
 Automatical Generator of Conformal Bootstrap Equation
 
+## Setup
+
+```sh
+tar xvf sgd.tar.xz
+```
+
 ## Usage
 
 To use autoboot, you have to load either `group.m` or `ngroup.m` (**not both**).
