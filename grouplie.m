@@ -54,8 +54,8 @@ getO[3] := getO[3] = AbortProtect @ Module[{G},
 	G[s][v[n_, t_]] := t IdentityMatrix[2 n + 1];
 	G[e][v[n_, s_]] := e[n];
 	G[f][v[n_, s_]] := f[n];
-	G[minrep[v[n_, s_], v[n_, t_]]] := v[n, Max[s, t]]
-	G[minrep[v[n_, s_], v[m_, t_]]] := If[n < m, v[n, s], v[m, t]]
+	G[minrep[v[n_, s_], v[n_, t_]]] := v[n, Max[s, t]];
+	G[minrep[v[n_, s_], v[m_, t_]]] := If[n < m, v[n, s], v[m, t]];
 	G
 ]
 
