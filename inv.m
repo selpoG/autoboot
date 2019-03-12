@@ -78,7 +78,7 @@ makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertic
 makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
 sdp::usage = "sdp[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
-toString::usage = "toString[sdp] converts sdp-object into python code for cboot."
+toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
 
 Begin["`Private`"]
 
@@ -548,7 +548,7 @@ scalarnum = 2
 vals = {1/2, Sqrt[2], Pi, ...}
 mat[sec, num] = {{{block[-1,Sqrt[2],F[e,v,e,v]]+block[1,Sqrt[3]/2,F[e,e,v,v]], ...}, ...}, ...}
 *)
-toString[sdp[secs_, scalarnum_, vals_, mat_]] :=
+toCboot[sdp[secs_, scalarnum_, vals_, mat_]] :=
 	Module[{s, v, o, revval = reverseIndex[vals], blk, f, convert, make, tmp, secsStr, valsStr, rmats, smats, umats, filename},
 		secsStr = StringRiffle[TemplateApply["(\"`r`\", `p`): `n`", <|"r" -> #[[2]], "p" -> (1 - #[[4]])/2, "n" -> secs[#]|>] & /@ Keys[secs], ", "];
 		valsStr = tensorToString[vals, ToPython`pyeval];
