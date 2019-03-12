@@ -33,7 +33,9 @@ isReal::usage = "isReal[r] gives whether r is a real representation or not."
 isComplex::usage = "isComplex[r] gives whether r is a complex representation or not."
 isPseaudo::usage = "isPseaudo[r] gives whether r is a pseaudo real representation or not."
 
-op::usage = "op[x,r,p,q] represents a primary operator object O whose name is x, which belongs to irrep r, which sign (=\[Sigma][O]) is p and whose parity of spin is q (=±1). If O appears in summation, we use 'op' as its name."
+op::usage = "op[x,r,p,q] represents a primary operator object O whose name is x, which belongs to irrep r, which sign (=\[Sigma][O]) is p and whose parity of spin is q (=±1). If O appears in summation, we use 'op' as its name.
+op[x,r] is a short-hand for op[x,r,1,1].
+op[x] is a short-hand for op[x,r,1,1] if you registered op[x,r,1,1] as a fundamental scalar."
 dualOp::usage = "dualOp[op[x,r,p,q]] gives dual operator object of op[x,r,p,q]."
 
 format::usage = "format[eq] gives readable format of eq with little loss of information. We need much redundancy to calculate properly, so formatted value cannot be used for any argument of our function. format[eq] is assumed to be used only for human-readability of last output."
@@ -96,6 +98,8 @@ setGroup[G_] := AbortProtect @ Module[{x, name = "ClebschGordan`Private`"},
 	one = op[0, id, 1, 1];
 ]
 clearCG[] := ClearAll["ClebschGordan`*", "ClebschGordan`Private`*"]
+
+op[x_, r_] := op[x, r, 1, 1]
 
 x:inv[{r_, s_}, {t_}] := x = If[KeyExistsQ[prod[r, s], t], prod[r, s][t], 0]
 x:inv[r_, s_, t_] := x = inv[{r, s}, {dual[t]}]
@@ -480,6 +484,7 @@ Fp[a_, b_, c_, d_, o_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b
 Hp[a_, b_, c_, d_, o_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b]) := Hp[c, d, a, b, o]
 addOp[o : op[x_, r_, 1 | -1, 1]] := AbortProtect[allops[o] = 1; add[allopsForBoot, o];
 	If[!KeyExistsQ[allreps, r], allreps[r] = <|o->1|>, allreps[r][o] = 1];
+	op[x] = op[x, r];
 	If[!KeyExistsQ[ord, x], ord[x] = Length[ord]];]
 setOps[ops_List] := AbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
 
