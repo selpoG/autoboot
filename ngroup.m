@@ -43,9 +43,12 @@ e = CommonFunctions`e
 MyReap = CommonFunctions`MyReap
 dual /: G_[dual[x_List]] := G[dual[#]] & /@ x;
 
-setGroup[G_] := (Block[{$CharacterEncoding = "UTF-8"}, <<"ninv.m"]; NClebschGordan`Private`setGroup[G, precision, epsilon];)
+checkPrec[expr_] := If[precision === Null, Message[setPrecision::null], expr]
+SetAttributes[checkPrec, HoldFirst]
 
-getGroup[1, 1] := getGroup[1, 1] = AbortProtect @ Module[{G},
+setGroup[G_] := checkPrec[Block[{$CharacterEncoding = "UTF-8"}, <<"ninv.m"]; NClebschGordan`Private`setGroup[G, precision, epsilon]]
+
+getGroup[1, 1] := checkPrec[getGroup[1, 1] = AbortProtect @ Module[{G},
 	G = group[1, 1];
 	G[id] = rep[1];
 	G[ncg] = 1;
@@ -59,17 +62,18 @@ getGroup[1, 1] := getGroup[1, 1] = AbortProtect @ Module[{G},
 	G[gA] = {};
 	G[minrep[rep[1], rep[1]]] = rep[1];
 	G
-]
+]]
 
 available[1, 1] = True;
 x:available[g_, i_] := x = FileExistsQ[TemplateApply["sgd/sg.`g`.`i`.m", <|"g" -> g, "i" -> i|>]]
 
 precision = Null;
 setPrecision::dup = "prec has changed from `1` to `2`. setPrecision is assumed to be called only once. Some values may be incorrect.";
+setPrecision::null = "precision is null! Please call setPrecision first."
 setPrecision[prec_?NumericQ] := (If[precision =!= Null, Message[setPrecision::dup, precision, prec]]; precision = prec; epsilon = 10^(-prec + 10);)
 num[x_] := Chop[N[x, precision], epsilon]
 
-getGroup[g_, i_] := getGroup[g, i] = Module[{dat, ncg$, ct$, rep$, mul$, ip, file, G, r, s, a, b, mats, j, n, m, myprod, z},
+getGroup[g_, i_] := checkPrec[getGroup[g, i] = Module[{dat, ncg$, ct$, rep$, mul$, ip, file, G, r, s, a, b, mats, j, n, m, myprod, z},
 	file = TemplateApply["sgd/sg.`g`.`i`.m", <|"g" -> g, "i" -> i|>];
 	If[! FileExistsQ[file], Return[Null]];
 	dat = Import[file];
@@ -100,7 +104,7 @@ getGroup[g_, i_] := getGroup[g, i] = Module[{dat, ncg$, ct$, rep$, mul$, ip, fil
 		G[minrep[rep[n_], rep[m_]]] := rep[Min[n, m]];
 		G
 	]
-]
+]]
 
 product[g1_, g2_] := AbortProtect @ Module[{G, r1, r2, s1, s2, g},
 	G = pGroup[g1, g2];
