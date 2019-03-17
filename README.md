@@ -55,7 +55,12 @@ setGroup[d8];
 setOps[{op[e, d8[id], 1, 1], op[v, rep[5], 1, 1]}]
 format[eq = bootAll[]]
 ans = makeSDP[eq];
-buf = OpenWrite["d8.py"];
-WriteString[buf, toString[ans]]
-Close[buf];
+WriteString["d8.py", toCboot[ans]]
+(* specify how to convert operators to latex code *)
+opToTeX[e] := "\\epsilon"
+opToTeX[v] := "v"
+(* specify how to convert irreps to latex code *)
+repToTeX[rep[n_]] := TemplateApply["\\mathbf{`n`}", <|"n" -> n|>]
+(* you can paste printed string to your latex file *)
+Print[toTeX[eq]]
 ```
