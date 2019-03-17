@@ -79,6 +79,10 @@ makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of e
 makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
 sdp::usage = "sdp[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
 toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
+toTeX::usage = "toTeX[eq] gives latex string of eq (you need call Print[toTeX[eq]] to paste to your tex file).
+toTeX[eqn[{a,b,...}]] gives latex string of eq with align environment (you need call Print[toTeX[eq]] to paste to your tex file)."
+repToTeX::usage = "repToTeX[r] is needed to transrate irrep-object r as latex string. Please set appropriate value."
+opToTeX::usage = "opToTeX[o] is needed to transrate operator object o as latex string. Please set appropriate value."
 
 Begin["`Private`"]
 
@@ -523,6 +527,105 @@ addOp[o : op[x_, r_, 1 | -1, 1]] := AbortProtect[allops[o] = 1; add[allopsForBoo
 	op[x] = op[x, r];
 	If[!KeyExistsQ[ord, x], ord[x] = Length[ord]];]
 setOps[ops_List] := AbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
+
+numToTeX[x_] := (Print["Unknown pattern at numToTeX:", x]; ToString[x])
+repToTeX[x_] := (Print["Unknown pattern at repToTeX:", x]; ToString[x])
+opToTeX[x_] := (Print["Unknown pattern at opToTeX:", x]; ToString[x])
+FtoTeX[x_] := (Print["Unknown pattern at FtoTeX:", x]; ToString[x])
+\[Beta]toTeX[x_] := (Print["Unknown pattern at \[Beta]toTeX:", x]; ToString[x])
+\[Beta]FtoTeX[x_] := (Print["Unknown pattern at \[Beta]FtoTeX:", x]; ToString[x])
+termToTeX[x_] := (Print["Unknown pattern at termToTeX:", x]; ToString[x])
+
+opToTeX[op] := "\\op{O}"
+
+FtoTeX[F[a_, b_, c_, d_]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{-,\\op{O}}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d]|>]
+FtoTeX[H[a_, b_, c_, d_]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{+,\\op{O}}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d]|>]
+FtoTeX[Fp[a_, b_, c_, d_, e_]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{-,`o5`}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d], "o5" -> opToTeX[e]|>]
+FtoTeX[Hp[a_, b_, c_, d_, e_]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{+,`o5`}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d], "o5" -> opToTeX[e]|>]
+FtoTeX[Fp[a_, b_, c_, d_, 0]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{-,1}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d]|>]
+FtoTeX[Hp[a_, b_, c_, d_, 0]] :=
+	TemplateApply[
+		"F^{`o1` `o2`,`o3` `o4`}_{+,1}",
+		<|"o1" -> opToTeX[a], "o2" -> opToTeX[b], "o3" -> opToTeX[c], "o4" -> opToTeX[d]|>]
+
+(* TODO: detect \[Beta][a, b, c][n] exists for n>1. *)
+\[Beta]toTeX[\[Beta][a_, b_, c_][n_]] :=
+	TemplateApply[
+		"\\lambda_{`o1` `o2` `o3`}^{(`n`)}",
+		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]], "n" -> numToTeX[n]|>]
+\[Beta]toTeX[\[Beta][a_, b_, c_][1]] :=
+	TemplateApply[
+		"\\lambda_{`o1` `o2` `o3`}",
+		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]]|>]
+
+\[Beta]FtoTeX[(x : \[Beta][__][_]) (y : \[Beta][__][_]) (z_F | z_H | z_Fp | z_Hp)] :=
+	TemplateApply[
+		"`a1` `a2` `a3`",
+		<|"a1" -> \[Beta]toTeX[x], "a2" -> \[Beta]toTeX[y], "a3" -> FtoTeX[z]|>]
+\[Beta]FtoTeX[(x : \[Beta][__][_])^2 (y_F | y_H | y_Fp | y_Hp)] := TemplateApply["{`a1`}^2 `a2`", <|"a1" -> \[Beta]toTeX[x], "a2" -> FtoTeX[y]|>]
+\[Beta]FtoTeX[x_F | x_H | x_Fp | x_Hp] := FtoTeX[x]
+
+numToTeX[x_] /; InexactNumberQ[x] := numToTeX @ Rationalize[x, epsilon / 10^10]
+numToTeX[x_Integer] := ToString[x]
+numToTeX[Rational[x_, y_]] := TemplateApply["\\frac{`x`}{`y`}", <|"x" -> numToTeX[x], "y" -> numToTeX[y]|>]
+numToTeX[Power[n_Integer, Rational[1, 2]]] := TemplateApply["\\sqrt{`x`}", <|"x" -> numToTeX[n]|>]
+numToTeX[x_] /; NumericQ[x] && Element[x, Algebraics] :=
+	Module[{t = ToNumberField[x], s, r, n, d},
+		s = numToTeX[t[[1]]];
+		r = t[[2, 2]];
+		Which[
+			r[[0]] === Rational,
+				n = Numerator[r]; d = Denominator[r];
+				TemplateApply["\\frac{`x` `s`}{`y`}", <|"x" -> If[n == 1, "", numToTeX[n]], "y" -> numToTeX[d], "s" -> s|>]
+			, r != 1,
+				TemplateApply["`x` `s`", <|"x" -> numToTeX[r], "s" -> s|>]
+			, _,
+				s]]
+
+termToTeX[one_, sum[x_, op[op, rp_, 1, l_]]] /; num[Abs[one - 1]] < epsilon :=
+	TemplateApply[
+		"\\sum_{\\op{O}^`s`:{`a`}}`b`",
+		<|"a" -> repToTeX[rp], "b" -> \[Beta]FtoTeX[x], "s" -> If[l == 1, "+", "-"]|>]
+termToTeX[one_, single[x_]] /; num[Abs[one - 1]] < epsilon := \[Beta]FtoTeX[x]
+termToTeX[r_, sum[x_, op[op, rp_, 1, l_]]] :=
+	TemplateApply[
+		"`r`\\sum_{\\op{O}^`s`:{`a`}}`b`",
+		<|"r" -> numToTeX[r], "a" -> repToTeX[rp], "b" -> \[Beta]FtoTeX[x], "s" -> If[l == 1, "+", "-"]|>]
+termToTeX[r_, single[x_]] := numToTeX[r] <> \[Beta]FtoTeX[x]
+
+decLin[x_sum | x_single] := {{1, x}}
+decLin[Times[r__?NumericQ, x_sum | x_single]] := {{Times[r], x}}
+decLin[x_Plus] := Flatten[decLin /@ List @@ x, 1]
+
+toTeX[x_] :=
+	Module[{tms, ans = "", fst = True, t},
+		tms = decLin[x];
+		Do[
+			If[fst,
+				ans = ans <> If[t[[1]] < 0, "-", ""] <> termToTeX[Abs[t[[1]]], t[[2]]],
+				ans = ans <> If[t[[1]] < 0, "-", "+"] <> termToTeX[Abs[t[[1]]], t[[2]]]];
+			fst = False
+		, {t, tms}];
+		ans]
+toTeX[eqn[eq_List]] :=
+	Module[{eqns},
+		eqns = SortBy[eq, StringLength[toTeX[#]] &];
+		StringRiffle[StringJoin["0&=", toTeX[#], ",\\\\"] & /@ eqns, "\n"]]
 
 connectedComponents[eqn[_, z_]] :=
 	Module[{f, uf = newUF[]},
