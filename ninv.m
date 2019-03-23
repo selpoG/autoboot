@@ -591,7 +591,7 @@ numToTeX[x_] /; NumericQ[x] && Element[x, Algebraics] :=
 		Which[
 			r[[0]] === Rational,
 				n = Numerator[r]; d = Denominator[r];
-				TemplateApply["\\frac{`x` `s`}{`y`}", <|"x" -> If[n == 1, "", numToTeX[n]], "y" -> numToTeX[d], "s" -> s|>]
+				TemplateApply["\\frac{`x``s`}{`y`}", <|"x" -> If[n == 1, "", " "<>numToTeX[n]], "y" -> numToTeX[d], "s" -> s|>]
 			, r != 1,
 				TemplateApply["`x` `s`", <|"x" -> numToTeX[r], "s" -> s|>]
 			, _,
