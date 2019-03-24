@@ -490,7 +490,7 @@ H[a_, b_, c_, d_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := H[c, d, a, b]
 Fp[a_, b_, c_, d_, o_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := Fp[b, a, d, c, o]
 Hp[a_, b_, c_, d_, o_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := Hp[b, a, d, c, o]
 Fp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Fp[d, c, b, a, o]
-Hp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Hp[d, c, b, a, 0]
+Hp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Hp[d, c, b, a, o]
 Fp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Fp[c, d, a, b, o]
 Hp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Hp[c, d, a, b, o]
 addOp[o : op[x_, r_, 1 | -1, 1]] := AbortProtect[allops[o] = 1; add[allopsForBoot, o];
