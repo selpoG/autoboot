@@ -478,14 +478,21 @@ sector[eqn[eq_List]] := Module[{pr},
 	pr[op[op, r_, 1, p_], op[op, s_, 1, q_]] := (r === s && p > q) || minrep[r, s] =!= s;
 	Sort[keys[tmpsec], pr]]
 
-F[a_, b_, a_, b_] /; ord[b] < ord[a] := F[b, a, b, a]
-H[a_, b_, a_, b_] /; ord[b] < ord[a] := H[b, a, b, a]
-F[a_, b_, c_, d_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b]) := F[c, d, a, b]
-H[a_, b_, c_, d_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b]) := H[c, d, a, b]
-Fp[a_, b_, a_, b_, o_] /; ord[b] < ord[a] := Fp[b, a, b, a, o]
-Hp[a_, b_, a_, b_, o_] /; ord[b] < ord[a] := Hp[b, a, b, a, o]
-Fp[a_, b_, c_, d_, o_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b]) := Fp[c, d, a, b, o]
-Hp[a_, b_, c_, d_, o_] /; ord[c] < ord[a] || (ord[c] == ord[a] && ord[d] < ord[b]) := Hp[c, d, a, b, o]
+(* compare tow list lexicaly. assume that a and b has equal length. *)
+lexComp[a_List, b_List] := Module[{i, x, y}, Catch[Do[x = ord[a[[i]]]; y = ord[b[[i]]]; If[x != y, Throw[Sign[x - y]]], {i, Length[a]}]; Throw[0]]]
+
+F[a_, b_, c_, d_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := F[b, a, d, c]
+H[a_, b_, c_, d_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := H[b, a, d, c]
+F[a_, b_, c_, d_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := F[d, c, b, a]
+H[a_, b_, c_, d_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := H[d, c, b, a]
+F[a_, b_, c_, d_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := F[c, d, a, b]
+H[a_, b_, c_, d_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := H[c, d, a, b]
+Fp[a_, b_, c_, d_, o_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := Fp[b, a, d, c, o]
+Hp[a_, b_, c_, d_, o_] /; lexComp[{b, a, d, c}, {a, b, c, d}] < 0 := Hp[b, a, d, c, o]
+Fp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Fp[d, c, b, a, o]
+Hp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Hp[d, c, b, a, 0]
+Fp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Fp[c, d, a, b, o]
+Hp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Hp[c, d, a, b, o]
 addOp[o : op[x_, r_, 1 | -1, 1]] := AbortProtect[allops[o] = 1; add[allopsForBoot, o];
 	If[!KeyExistsQ[allreps, r], allreps[r] = <|o->1|>, allreps[r][o] = 1];
 	op[x] = op[x, r];
@@ -663,7 +670,7 @@ toCboot[sdp[secs_, scalarnum_, vals_, mat_]] :=
 		convert[block[-1, 1, bl_]] := TemplateApply["-bl[`i`]", <|"i" -> blk[bl]|>];
 		convert[block[1, v_, bl_]] := TemplateApply["val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
 		convert[block[-1, v_, bl_]] := TemplateApply["-val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
-		convert[x_Plus] := convert[x[[1]]] <> StringJoin[Table[If[y[[1]] > 0, " + " <> convert[y], " - " <> convert[block[1, y[[2]], y[[3]]]]], {y, Rest[x]}]];
+		convert[x_Plus] := Module[{lx = List @@ x}, convert[lx[[1]]] <> StringJoin[Table[If[y[[1]] > 0, " + " <> convert[y], " - " <> convert[block[1, y[[2]], y[[3]]]]], {y, Rest[lx]}]]];
 		(* assign indices to block *)
 		f[x_List] := Scan[f, x];
 		f[x_Plus] := Scan[f, List @@ x];
