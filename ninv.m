@@ -77,7 +77,7 @@ sector::usage = "sector[eq] gives a list of all nontrivial option sec for extrac
 makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertices are OPE coefficients \[Beta] in extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
-sdp::usage = "sdp[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
+sdpobj::usage = "sdpobj[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
 toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
 toTeX::usage = "toTeX[eq] gives latex string of eq (you need call Print[toTeX[eq]] to paste to your tex file).
 toTeX[eqn[{a,b,...}]] gives latex string of eq with align environment (you need call Print[toTeX[eq]] to paste to your tex file)."
@@ -678,7 +678,7 @@ makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scaln
 		scalnum = Length[tmp];
 		Do[mat[scalar, i] = f[tmp[[i]]], {i, scalnum}];
 		Do[tmp = makeMat[extract[z, s]]; secs[s] = Length[tmp]; Do[mat[s, i] = f[tmp[[i]]], {i, secs[s]}];, {s, Drop[sec, 2]}];
-		sdp[secs, scalnum, keys[val], mat]
+		sdpobj[secs, scalnum, keys[val], mat]
 	]
 
 toString[F[x_, y_, z_, w_]] := TemplateApply["get(F, \"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
@@ -694,7 +694,7 @@ scalarnum = 2
 vals = {1/2, Sqrt[2], Pi, ...}
 mat[sec, num] = {{{block[-1,Sqrt[2],F[e,v,e,v]]+block[1,Sqrt[3]/2,F[e,e,v,v]], ...}, ...}, ...}
 *)
-toCboot[sdp[secs_, scalarnum_, vals_, mat_]] :=
+toCboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 	Module[{s, v, o, revval = reverseIndex[vals], blk, f, convert, make, tmp, secsStr, valsStr, rmats, smats, umats, filename},
 		secsStr = StringRiffle[TemplateApply["(\"`r`\", `p`): `n`", <|"r" -> #[[2]], "p" -> (1 - #[[4]])/2, "n" -> secs[#]|>] & /@ Keys[secs], ", "];
 		valsStr = tensorToString[vals, ToPython`pyeval];
