@@ -137,6 +137,9 @@ def write_SDP(deltas):
 	prob = get_path(name(deltas) + \".xml\")
 	if not has_done(deltas): make_SDP(deltas).write(prob)
 "
+
+Protect[pyeval, createPython]
+
 End[ ]
 
 EndPackage[ ]

@@ -76,6 +76,9 @@ classify[x : uf[par_]] ^:= Module[{rt = <||>, v, r}, Do[r = root[x, v]; If[! Key
 
 reverseIndex[x_List] := Module[{d = <||>}, Scan[(d[#] = Length[d]) &, x]; d]
 
+Protect[e, MyReap, DoMany, dupcomb, removeSGs, lhs, rhs, importPackage, zero,
+	newSet, set, newUF, uf, add, has, remove, clear, keys, size, root, unite, classify, reverseIndex]
+
 End[ ]
 
 EndPackage[ ]

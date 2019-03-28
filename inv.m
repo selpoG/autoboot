@@ -90,8 +90,27 @@ setOPE::usage = "setOPE[r,s,t] calculates all values of ope[r,s,t].
 setOPE[r,s] calls setOPE[r,s,t] for all t in prod[r,s]."
 setAllOPE::usage = "setAllOPE[reps] calls setOPE[r,s] and setOPE[t,dual[t],id] for all r,s in reps and t in prod[r,s]."
 
+allPublicSymbol = {clearCG, inv, ope, cor,
+	\[Sigma], \[Tau], \[Omega], six, isReal, isComplex, isPseaudo, op, dualOp, format,
+	sum, single, F, H, Fp, Hp, \[Lambda], \[Alpha], \[Mu], \[Nu], \[Beta],
+	eqn, bootAll, setOps, extract, unit, scalar, sector,
+	makeG, makeMat, makeSDP, sdpobj, toCboot, toTeX}
+
+protectCounter = 0
+myUnprotect[expr_] := Module[{ans},
+	Unprotect[Evaluate[allPublicSymbol]];
+	protectCounter++;
+	ans = expr;
+	protectCounter--;
+	If[protectCounter == 0, Protect[Evaluate[allPublicSymbol]]];
+	ans]
+myAbortProtect[expr_] := AbortProtect[myUnprotect[expr]]
+SetAttributes[myUnprotect, HoldFirst]
+SetAttributes[myAbortProtect, HoldFirst]
+
 CommonFunctions`importPackage["CommonFunctions`", "ClebschGordan`Private`", {"importPackage", "lhs", "rhs", "MyReap", "newUF", "newSet", "classify", "keys", "add", "reverseIndex", "zero", "root", "unite", "has"}]
-setGroup[G_] := AbortProtect @ Module[{x, name = "ClebschGordan`Private`"},
+setGroup[G_] := myAbortProtect @ Module[{x, name = "ClebschGordan`Private`"},
+	Unprotect[symmetryGroup, one];
 	symmetryGroup = G;
 	Scan[(Evaluate[ToExpression[name <> #]][x___] := G[ToExpression[#][x]]) &,
 		{"isrep", "dim", "dual", "minrep", "inv"}];
@@ -100,17 +119,19 @@ setGroup[G_] := AbortProtect @ Module[{x, name = "ClebschGordan`Private`"},
 		Module[{y = <||>}, Scan[If[KeyExistsQ[y, #], y[#]++, y[#] = 1]&, gprod[r, s]]; y];
 	Scan[(Evaluate[ToExpression[name <> #]] = G[ToExpression[#]]) &, {"id", "gG", "gA"}];
 	one = op[0, id, 1, 1];
+	Protect[symmetryGroup, one];
 ]
-clearCG[] := ClearAll["ClebschGordan`*", "ClebschGordan`Private`*"]
+clearCG[] := (Unprotect[Evaluate[allPublicSymbol]]; Unprotect[symmetryGroup, one];
+	ClearAll["ClebschGordan`*", "ClebschGordan`Private`*"])
 
 op[x_, r_] := op[x, r, 1, 1]
 
-x:inv[{r_, s_}, {t_}] := x = If[KeyExistsQ[prod[r, s], t], prod[r, s][t], 0]
-x:inv[r_, s_, t_] := x = inv[{r, s}, {dual[t]}]
-x:inv[r1_, r2_, r3_, r4_] := x = Module[{s}, Association @ Table[
-	If[inv[s, r3, r4] > 0, s -> {prod[r1, r2][s], inv[s, r3, r4]}, Nothing], {s, Keys @ prod[r1, r2]}]]
-x:invs[r1_, r2_, r3_, r4_] := x = Module[{t = inv[r1, r2, r3, r4], s, n, m},
-	MyReap @ Do[Sow[{s, n, m}], {s, Keys[t]}, {n, t[s][[1]]}, {m, t[s][[2]]}]]
+x:inv[{r_, s_}, {t_}] := myAbortProtect[x = If[KeyExistsQ[prod[r, s], t], prod[r, s][t], 0]]
+x:inv[r_, s_, t_] := myAbortProtect[x = inv[{r, s}, {dual[t]}]]
+x:inv[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{s}, Association @ Table[
+	If[inv[s, r3, r4] > 0, s -> {prod[r1, r2][s], inv[s, r3, r4]}, Nothing], {s, Keys @ prod[r1, r2]}]]]
+x:invs[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{t = inv[r1, r2, r3, r4], s, n, m},
+	MyReap @ Do[Sow[{s, n, m}], {s, Keys[t]}, {n, t[s][[1]]}, {m, t[s][[2]]}]]]
 
 (* eq[r,s,t] gives equations which Clebsch-Gordan coefficients {a,b/r,s|c/t} must satisfy. *)
 eq[r_, s_, t_] /; inv[{r, s}, {t}] > 0 :=
@@ -145,7 +166,7 @@ Module[{sol, a, b, c, d = dim[r], d3 = dim[t], l, n, sym, tmp, v, p, even, odd},
 	even = Select[simp @ Orthogonalize[simp[sym[#, +1] & /@ sol], simp[Conjugate[#1].#2] &], AnyTrue[#, simp @ # != 0 &] &];
 	odd  = Select[simp @ Orthogonalize[simp[sym[#, -1] & /@ sol], simp[Conjugate[#1].#2] &], AnyTrue[#, simp @ # != 0 &] &];
 	l = Length[even];
-	AbortProtect[
+	myAbortProtect[
 		Do[ope[r, r, t][n][a, b, c] = even[[n, d d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
 		, {n, l}, {a, d}, {b, d}, {c, d3}];
 		Do[ope[r, r, t][n + l][a, b, c] = odd[[n, d d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
@@ -159,7 +180,7 @@ Module[{sol, a, b, c, d1 = dim[r], d2 = dim[s], d3 = dim[t], l, n},
 	If[l == 0, Message[setOPE::imcmpt, r, s, t]; Return[]];
 	If[l != inv[{r, s}, {t}], Message[setOPE::diff, r, s, t, l, inv[{r, s}, {t}]]; Return[]];
 	sol = simp @ Orthogonalize[sol, simp[Conjugate[#1].#2] &];
-	AbortProtect[
+	myAbortProtect[
 		Do[ope[r, s, t][n][a, b, c] = ope[s, r, t][n][b, a, c] = sol[[n, d2 d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
 		, {n, l}, {a, d1}, {b, d2}, {c, d3}];
 		\[Sigma][r, s, dual[t]][_] := 1;
@@ -175,14 +196,14 @@ x:ope[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[{r, s}, {t}] := (setOPE[r, s,
 ope[_, _, _][_][_, _, _] := 0
 
 x:setOPE[r_] := x = Module[{r2 = dual[r], a, b, d = dim[r], sd},
-	sd = Sqrt[d]; AbortProtect @ Do[ope[r][a, b] = simp[sd ope[r, r2, id][1][a, b, 1]], {a, d}, {b, d}]]
+	sd = Sqrt[d]; myAbortProtect @ Do[ope[r][a, b] = simp[sd ope[r, r2, id][1][a, b, 1]], {a, d}, {b, d}]]
 x:ope[r_][a_, b_] := (setOPE[r]; x)
 
 x:setCor[r_, s_, t_] := x = Module[{n, a, b, c, c2, d = dim[t], sd, t2 = dual[t], res},
 	sd = Sqrt[d];
 	Do[res[n, a, b, c] = simp[Sum[ope[r, s, t2][n][a, b, c2] ope[t2][c2, c], {c2, d}] / sd]
 	, {n, inv[r, s, t]}, {a, dim[r]}, {b, dim[s]}, {c, d}];
-	AbortProtect @ Do[cor[r, s, t][n][a, b, c] = res[n, a, b, c]
+	myAbortProtect @ Do[cor[r, s, t][n][a, b, c] = res[n, a, b, c]
 	, {n, inv[r, s, t]}, {a, dim[r]}, {b, dim[s]}, {c, d}];
 ]
 x:cor[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[r, s, t] := (setCor[r, s, t]; x)
@@ -191,7 +212,7 @@ cor[_, _, _][_][_, _, _] := 0
 x:setCor[r1_, r2_, r3_, r4_, s_] := x = Module[{n, m, a1, a2, a3, a4, s2 = dual[s], res},
 	Do[res[n, m, a1, a2, a3, a4] = simp @ Sum[cor[r1, r2, s2][n][a1, a2, b] ope[r3, r4, s2][m][a3, a4, b], {b, dim[s]}]
 	, {n, inv[{r1, r2}, {s}]}, {m, inv[r3, r4, s]}, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}];
-	AbortProtect @ Do[cor[r1, r2, r3, r4][s, n, m][a1, a2, a3, a4] = res[n, m, a1, a2, a3, a4],
+	myAbortProtect @ Do[cor[r1, r2, r3, r4][s, n, m][a1, a2, a3, a4] = res[n, m, a1, a2, a3, a4],
 		{n, inv[{r1, r2}, {s}]}, {m, inv[r3, r4, s]}, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}];
 ]
 x:cor[r1_, r2_, r3_, r4_][s_, n_, m_][a1_, a2_, a3_, a4_] /;
@@ -223,7 +244,7 @@ Module[{n, f = cor[r, s, t], max = inv[r, s, t], mat, rev, new, old, sc, a, b, c
 	, {a, dim[r]}, {b, dim[s]}, {c, dim[t]}], {n, 2, max}];
 	Assert[simp[rev.mat] == IdentityMatrix[max]];
 	rev = simp @ rev;
-	AbortProtect[invmat[r, s, t] = rev; Do[bas[r, s, t][n] = res[n], {n, max}]]
+	myAbortProtect[invmat[r, s, t] = rev; Do[bas[r, s, t][n] = res[n], {n, max}]]
 ]
 
 dec[r1_, r2_, r3_, r4_][f_] := Module[{vec, t = {r1, r2, r3, r4}},
@@ -249,13 +270,13 @@ Module[{f = cor[r1, r2, r3, r4], mat, rev, new, old, sc, a1, a2, a3, a4, t,
 			Break[]]
 	, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}], {n, 2, Length[ks]}];
 	rev = simp @ rev;
-	AbortProtect[invmat[r1, r2, r3, r4] = rev; Do[bas[r1, r2, r3, r4][n] = res[n], {n, Length[ks]}]]
+	myAbortProtect[invmat[r1, r2, r3, r4] = rev; Do[bas[r1, r2, r3, r4][n] = res[n], {n, Length[ks]}]]
 ]
 
 \[Sigma][r_, i_, r_][1] /; i === id := 1
 \[Sigma][i_, r_, r_][1] /; i === id := 1
 x:\[Sigma][r_, s_, t_][n_] := (setOPE[r, s, dual[t]]; x)
-x:\[Sigma][r_] := x = \[Sigma][r, dual[r], id][1]
+x:\[Sigma][r_] := myAbortProtect[x = \[Sigma][r, dual[r], id][1]]
 
 \[Sigma][op[_, _, p : 1 | -1, 1 | -1]] := p
 \[Sigma][x_Times] := \[Sigma] /@ x
@@ -268,7 +289,7 @@ x:setTau[r_, s_, t_] := x = Module[{n, m, l = inv[r, s, t], v, f, res},
 		v = dec[r, s, t][f];
 		Do[res[n, m] = v[[n]], {n, l}]
 	, {m, l}];
-	AbortProtect @ Do[\[Tau][r, s, t][n, m] = res[n, m], {m, l}, {n, l}]]
+	myAbortProtect @ Do[\[Tau][r, s, t][n, m] = res[n, m], {m, l}, {n, l}]]
 x:\[Tau][r_, s_, t_][n_, m_] /; 1 <= n <= inv[r, s, t] && 1 <= m <= inv[r, s, t] := (setTau[r, s, t]; x)
 \[Tau][_, _, _][n_, n_] := 1
 \[Tau][_, _, _][_, _] := 0
@@ -281,7 +302,7 @@ x:setOmega[r_, s_, t_] := x = Module[{n, m, l = inv[r, s, t], v, f, res},
 		v = dec[r, s, t][f];
 		Do[res[n, m] = v[[n]], {n, l}]
 	, {m, l}];
-	AbortProtect @ Do[\[Omega][r, s, t][n, m] = res[n, m], {m, l}, {n, l}]]
+	myAbortProtect @ Do[\[Omega][r, s, t][n, m] = res[n, m], {m, l}, {n, l}]]
 x:\[Omega][r_, s_, t_][n_, m_] /; 1 <= n <= inv[r, s, t] && 1 <= m <= inv[r, s, t] := (setOmega[r, s, t]; x)
 \[Omega][_, _, _][n_, n_] := 1
 \[Omega][_, _, _][_, _] := 0
@@ -294,7 +315,7 @@ Module[{f, ss = invs[r1, r2, r3, r4], ts = invs[r1, r4, r3, r2], t, k, l, tkl, s
 		v = dec[r1, r2, r3, r4][f];
 		Do[res[tkl, i] = v[[i]], {i, Length[ss]}]
 	, {tkl, ts}];
-	AbortProtect @ Do[{t, k, l} = tkl; {s, n, m} = ss[[i]];
+	myAbortProtect @ Do[{t, k, l} = tkl; {s, n, m} = ss[[i]];
 		six[r1, r2, r3, r4][s, n, m, t, k, l] = res[tkl, i], {tkl, ts}, {i, Length[ss]}]]
 x:six[r1_, r2_, r3_, r4_][s_, n_, m_, t_, k_, l_] /;
 1 <= n <= inv[{r1, r2}, {s}] && 1 <= m <= inv[r3, r4, s] && 1 <= k <= inv[{r1, r4}, {t}] && 1 <= l <= inv[r3, r2, t] :=
@@ -359,7 +380,7 @@ setOPE[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | 
 		ev0[L[a_, b_, c_, n_]] := res[a, b, c, n] = simp @ cnt[L[a, b, c, n]][[1, 2]];
 		ev[L[a_, b_, c_, n_]] := \[Alpha][a, b, c][n] = res[a, b, c, n];
 		Scan[ev0, Keys[cnt]];
-		AbortProtect @ Scan[ev, Keys[cnt]]]
+		myAbortProtect @ Scan[ev, Keys[cnt]]]
 setOPES[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | -1, 1]] :=
 	Module[{re, im, eq, a123, b123, e, v, cnt, x, N = inv[r, s, t], a213, a132, a231, a312, a321, b213, b132, b231, b312, b321, sol, add, n, ev0, res},
 		add[x_] := Sow[Join[Array[D[x, re[#]] &, N], Array[D[x, im[#]] &, N]]];
@@ -385,19 +406,19 @@ setOPES[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 |
 		ev0[L[a_, b_, c_, n_]] := res[a, b, c, n] = simp @ cnt[L[a, b, c, n]][[1, 2]];
 		ev[L[a_, b_, c_, n_]] := \[Nu][a, b, c][n] = res[a, b, c, n];
 		Scan[ev0, Keys[cnt]];
-		AbortProtect @ Scan[ev, Keys[cnt]]]
+		myAbortProtect @ Scan[ev, Keys[cnt]]]
 \[Lambda][o1_, o2_, o3_][n_] := \[Alpha][o1, o2, dualOp[o3]][n] / Sqrt[dim[o3[[2]]]]
 x:\[Alpha][o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | -1, 1 | -1]][n_] /; 1 <= n <= inv[r, s, t] := (setOPE[o1, o2, o3]; x)
 \[Alpha][_, _, _][_] := 0
 \[Mu][o1_, o2_, o3_][n_] := \[Nu][o1, o2, dualOp[o3]][n] / Sqrt[dim[o3[[2]]]]
-x:\[Nu][o1 : op[_, r_, 1 | -1, 1], o2 : op[_, _, 1 | -1, 1], o3 : op[0, _, 1, 1]][1] /; o3 === one := x = If[o1 === dualOp[o2], Sqrt[dim[r]]\[Sigma][o1], 0]
-x:\[Nu][o1 : op[_, r_, 1 | -1, 1], o2 : op[0, _, 1, 1], o3 : op[_, _, 1 | -1, 1]][1] /; o2 === one := x = If[o1 === dualOp[o3], Sqrt[dim[r]], 0]
-x:\[Nu][o1 : op[0, _, 1, 1], o2 : op[_, r_, 1 | -1, 1], o3 : op[_, _, 1 | -1, 1]][1] /; o1 === one := x = If[o2 === dualOp[o3], Sqrt[dim[r]], 0]
+x:\[Nu][o1 : op[_, r_, 1 | -1, 1], o2 : op[_, _, 1 | -1, 1], o3 : op[0, _, 1, 1]][1] /; o3 === one := myUnprotect[x = If[o1 === dualOp[o2], Sqrt[dim[r]]\[Sigma][o1], 0]]
+x:\[Nu][o1 : op[_, r_, 1 | -1, 1], o2 : op[0, _, 1, 1], o3 : op[_, _, 1 | -1, 1]][1] /; o2 === one := myUnprotect[x = If[o1 === dualOp[o3], Sqrt[dim[r]], 0]]
+x:\[Nu][o1 : op[0, _, 1, 1], o2 : op[_, r_, 1 | -1, 1], o3 : op[_, _, 1 | -1, 1]][1] /; o1 === one := myUnprotect[x = If[o2 === dualOp[o3], Sqrt[dim[r]], 0]]
 x:\[Nu][o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | -1, 1]][n_] /; 1 <= n <= inv[r, s, t] && KeyExistsQ[allops, o3] := (setOPES[o1, o2, o3]; x)
 \[Nu][_, _, _][_] := 0
 
-x:\[Alpha][o1_, o2_, o3_, o4_][o_, n_, m_] := x = \[Lambda][o1, o2, o][n] \[Alpha][o3, o4, o][m]
-x:\[Nu][o1_, o2_, o3_, o4_][o_, n_, m_] := x = \[Mu][o1, o2, o][n] \[Nu][o3, o4, o][m]
+x:\[Alpha][o1_, o2_, o3_, o4_][o_, n_, m_] := myUnprotect[x = \[Lambda][o1, o2, o][n] \[Alpha][o3, o4, o][m]]
+x:\[Nu][o1_, o2_, o3_, o4_][o_, n_, m_] := myUnprotect[x = \[Mu][o1, o2, o][n] \[Nu][o3, o4, o][m]]
 
 x:sF[o1_, o2_, o3_, o4_][s_, n_, m_, p : 1 | -1] /; ! isPseaudo[s] && s === minrep[s, dual[s]] := x =
 	Simplify[Module[{sp}, Sum[With[{o = op[op, s, 1, sp]}, sum[ComplexExpand[\[Alpha][o1, o2, o3, o4][o, n, m] F[{o1, o2, o3, o4}, p]], o]], {sp, {1, -1}}]]]
@@ -493,11 +514,11 @@ Fp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Fp[d, c, b,
 Hp[a_, b_, c_, d_, o_] /; lexComp[{d, c, b, a}, {a, b, c, d}] < 0 := Hp[d, c, b, a, o]
 Fp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Fp[c, d, a, b, o]
 Hp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Hp[c, d, a, b, o]
-addOp[o : op[x_, r_, 1 | -1, 1]] := AbortProtect[allops[o] = 1; add[allopsForBoot, o];
+addOp[o : op[x_, r_, 1 | -1, 1]] := myAbortProtect[allops[o] = 1; add[allopsForBoot, o];
 	If[!KeyExistsQ[allreps, r], allreps[r] = <|o->1|>, allreps[r][o] = 1];
 	op[x] = op[x, r];
 	If[!KeyExistsQ[ord, x], ord[x] = Length[ord]];]
-setOps[ops_List] := AbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
+setOps[ops_List] := myAbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
 
 numToTeX[x_] := (Print["Unknown pattern at numToTeX:", x]; ToString[x])
 repToTeX[x_] := (Print["Unknown pattern at repToTeX:", x]; ToString[x])
@@ -718,6 +739,8 @@ makeG[eqn[sec_, eq_List]] :=
 		f[single[(_Fp | _Hp) a_^2]] := add[a, a];
 		Scan[f, eq];
 		Graph[Labeled[#, format[#]] & /@ Keys[vs], #[[1]] <-> #[[2]] & /@ Keys[es], PlotLabel -> ToString[label, StandardForm]]]
+
+Protect[Evaluate[allPublicSymbol]]
 
 End[ ]
 
