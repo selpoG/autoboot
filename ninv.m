@@ -124,7 +124,7 @@ setGroup[G_, prec_, eps_] := myAbortProtect @ Module[{x, name = "NClebschGordan`
 	Protect[symmetryGroup, one];
 ]
 clearCG[] := (Unprotect[Evaluate[allPublicSymbol]]; Unprotect[symmetryGroup, one];
-	ClearAll["ClebschGordan`*", "ClebschGordan`Private`*"])
+	ClearAll["NClebschGordan`*", "NClebschGordan`Private`*"])
 
 op[x_, r_] := op[x, r, 1, 1]
 
@@ -691,7 +691,7 @@ makeMat[z:eqn[_, eq_List]] := Module[{con = connectedComponents[z], c},
 makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scalnum, val = newSet[], f, s, i},
 		f[x_Plus] := f /@ x;
 		f[0] = 0;
-		f[x_?NumericQ y_] := If[x > 0, add[val, x]; block[1, x, y], If[x != -1, add[val, -x]]; block[-1, -x, y]];
+		f[x_?NumericQ y_] := If[x > 0, add[val, x]; block[1, x, y], add[val, -x]; block[-1, -x, y]];
 		f[y_] := block[1, 1, y];
 		SetAttributes[f, Listable];
 		mat[unit, 1] = f[makeMat[extract[z, unit]][[1]]];

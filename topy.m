@@ -47,8 +47,8 @@ pyeval[Exp[a_]] := TemplateApply["exp(``)", pyeval[a]]
 pyeval[Log[a_]] := TemplateApply["log(``)", pyeval[a]]
 pyeval[Log[b_, a_]] := TemplateApply["log(``, ``)", {pyeval[a], pyeval[b]}]
 pyeval[I] = "I";
-pyeval[x_?ExactNumberQ] := TemplateApply["context(\"``\")", Echo[FortranForm @ N[Echo[x], 300]]]
-pyeval[x_?NumberQ] := TemplateApply["context(\"``\")", FortranForm[x]]
+pyeval[x_?ExactNumberQ] := TemplateApply["context(\"``\")", ToString @ FortranForm @ N[x, 300]]
+pyeval[x_?NumberQ] := TemplateApply["context(\"``\")", ToString @ FortranForm[x]]
 
 createPython[secs_, scalarnum_, vals_, rmats_, smats_, umats_, filename_] :=
 	TemplateApply[template, <|"secs"->secs, "scalarnum"->scalarnum, "vals"->vals, "rmats"->rmats, "smats"->smats, "umats"->umats, "filename"->filename|>]
