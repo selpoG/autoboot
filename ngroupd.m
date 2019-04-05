@@ -75,8 +75,8 @@ getDihedral[n_] := getDihedral[n] = AbortProtect @ Module[{G, tmp},
 	G[gA] = {};
 	G[s][v[a_]] := G[s][v[a]] = {{e[n, a], 0}, {0, e[n, -a]}};
 	G[t][v[a_]] := G[t][v[a]] = {{0, 1}, {1, 0}};
-	G[s][i[a_]] := G[s][i[a, b]] = {{1}};
-	G[t][i[a_]] := G[t][i[a, b]] = {{a}};
+	G[s][i[a_]] := G[s][i[a]] = {{1}};
+	G[t][i[a_]] := G[t][i[a]] = {{a}};
 	G[minrep[i[a_], i[b_]]] := i[Max[a, b]];
 	G[minrep[i[a_], v[_]]] := i[a];
 	G[minrep[v[_], i[a_]]] := i[a];
