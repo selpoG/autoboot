@@ -49,6 +49,10 @@ Once you get a group `G`:
 
 Please see [IrrepLabels.md](/doc/IrrepLabels.md).
 
+### Custom Group-Object
+
+Please see [CustomGroup.md](/doc/CustomGroup.md).
+
 ## Example
 
 This example generates a bootstrap equation of D8-symmetric CFT.
