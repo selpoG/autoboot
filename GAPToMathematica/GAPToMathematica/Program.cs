@@ -13,46 +13,23 @@ namespace GAPToMathematica
 	{
 		static void Main()
 		{
-			var nsb = new StringBuilder("Errors at :\n");
-			var tsb = new StringBuilder("Timeout at :\n");
-			var ng = new List<GroupID>();
-			var tmout = new List<GroupID>();
-			for (var G = 4; G <= 6; G++)
+			Console.Write("order >> ");
+			var G = int.Parse(Console.ReadLine());
+			var num = Func.NumberOfGroups(G);
+			Console.WriteLine($"There are {num} groups of order {G}.");
+			Console.Write($"id ({1} ~ {num}) >> ");
+			var i = int.Parse(Console.ReadLine());
+			try
 			{
-				var num = Func.NumberOfGroups(G);
-				Console.WriteLine("{0} => {1}", G, num);
-				for (var i = 1; i <= num; i++)
+				var g = Group.SmallGroup(G, i);
+				if (g != null && g.Check())
 				{
-					try
-					{
-						var g = Group.SmallGroup(G, i);
-						if (g != null && g.Check())
-						{
-							Console.WriteLine("[{0}, {1}]", G, i);
-							g.SaveAsMathematica();
-						}
-						else
-						{
-							Console.WriteLine("Error! => {0}, {1}", G, i);
-							ng.Add(new GroupID(G, i));
-							nsb.Append((nsb.Length <= 12 ? "" : ", ") + $"[{G}, {i}]");
-						}
-					}
-					catch (TimeoutException)
-					{
-						Console.WriteLine("Timeout Error! => {0}, {1}", G, i);
-						tmout.Add(new GroupID(G, i));
-						tsb.Append((tsb.Length <= 13 ? "" : ", ") + $"[{G}, {i}]");
-					}
-					using (var sw = new StreamWriter("ng.txt"))
-					{
-						sw.WriteLine(nsb);
-						sw.WriteLine(tsb);
-					}
+					Console.WriteLine("Success: SmallGroup({0}, {1})", G, i);
+					g.SaveAsMathematica();
 				}
+				else Console.WriteLine($"Error! To debug, please run \"{Path.Combine(ExeFileDirectory, "smallgroup.sh")} {G} {i}\" directly.");
 			}
-			if (ng.Count > 0) Console.WriteLine(nsb);
-			if (tmout.Count > 0) Console.WriteLine(tsb);
+			catch (TimeoutException) { Console.WriteLine("Timeout Error!"); }
 		}
 	}
 }
