@@ -56,10 +56,10 @@ namespace GAPToMathematica
 					   select Concat(x, y).ToList();
 			return none.Or(many);
 		}
-		public static int NumberOfGroups(int order) => int.Parse(Exec($"Scripts/numgroup.sh {order}"));
-		public static string GroupInfo(string group) => Exec($"Scripts/groupinfo.sh \\\"{group}\\\"");
-		public static string GroupInfo(int order, int id) => Exec($"Scripts/smallgroup.sh {order} {id}");
-		public static string GroupInfo(int order, int id, int milliseconds) => Exec($"Scripts/smallgroup.sh {order} {id}", milliseconds);
+		public static int NumberOfGroups(int order) => int.Parse(Exec(Path.Combine(E.ExeFileDirectory, "numgroup.sh") + $" {order}"));
+		public static string GroupInfo(string group) => Exec(Path.Combine(E.ExeFileDirectory, "groupinfo.sh") + $" \\\"{group}\\\"");
+		public static string GroupInfo(int order, int id) => Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}");
+		public static string GroupInfo(int order, int id, int milliseconds) => Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}", milliseconds);
 		public static string Exec(string command)
 		{
 			var psi = new ProcessStartInfo
@@ -68,7 +68,8 @@ namespace GAPToMathematica
 				UseShellExecute = false,
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
-				Arguments = $"-c \"{command}\""
+				Arguments = $"-c \"{command}\"",
+				WorkingDirectory = E.WorkingDirectory
 			};
 			using (var p = Process.Start(psi))
 			{
@@ -78,7 +79,7 @@ namespace GAPToMathematica
 				p.BeginErrorReadLine();
 				p.WaitForExit();
 			}
-			return File.ReadAllText("out.txt");
+			return File.ReadAllText(Path.Combine(E.WorkingDirectory, "out.txt"));
 		}
 		public static string Exec(string command, int milliseconds)
 		{
@@ -88,7 +89,8 @@ namespace GAPToMathematica
 				UseShellExecute = false,
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
-				Arguments = $"-c \"{command}\""
+				Arguments = $"-c \"{command}\"",
+				WorkingDirectory = E.WorkingDirectory
 			};
 			using (var p = Process.Start(psi))
 			{
@@ -104,7 +106,7 @@ namespace GAPToMathematica
 					return null;
 				}
 			}
-			return File.ReadAllText("out.txt");
+			return File.ReadAllText(Path.Combine(E.WorkingDirectory, "out.txt"));
 		}
 		public static int[] CheckBrackets(this string s)
 		{

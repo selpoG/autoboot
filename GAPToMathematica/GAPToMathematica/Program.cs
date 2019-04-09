@@ -6,11 +6,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Sprache;
+using System.Reflection;
 
 namespace GAPToMathematica
 {
 	class E
 	{
+		public static readonly string WorkingDirectory = Directory.GetCurrentDirectory();
+		public static readonly string ExeFileDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 		static void Main()
 		{
 			Console.Write("order >> ");
