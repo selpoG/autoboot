@@ -10,8 +10,9 @@ g := SmallGroup($1, $2);
 if not IsPcGroup(g) then g := SmallGroup(1, 1); fi;
 ct := Irr(g);
 gen := GeneratorsOfGroup(g);
-irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x:unitary));
+irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x));
 calcG := function()
+local x, irr;
 Print("(id)=", IdGroup(g));
 Print("(cgsize)=", List(ConjugacyClasses(g), x -> Size(x)));
 Print("(chartab)=");
@@ -20,6 +21,7 @@ Print("(gen)=", gen);
 Print("(cggen)=", List(ConjugacyClasses(g), x -> Representative(x)));
 Print("(irrep)=");
 for irr in irrs do Print(List(gen, y -> Image(irr, y))); od;
+Print("(elements)=", Elements(g));
 return;
 end;
 output := OutputTextFile("out.txt", false);
