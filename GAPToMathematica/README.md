@@ -6,10 +6,10 @@
 make
 ```
 
-This will generate `GAPToMathematica.exe`.
+This will generate `GAPToMathematica.dll` in `bin/`.
 
 ## Usage
 
 ```sh
-mono GAPToMathematica.exe
+dotnet bin/GAPToMathematica.dll
 ```

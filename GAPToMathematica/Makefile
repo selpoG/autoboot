@@ -1,35 +1,32 @@
 PROJ := GAPToMathematica
-TARGET := $(PROJ).exe
+SUFFIXES := .deps.json .dll .pdb .runtimeconfig.json
+TARGET := $(addprefix bin/$(PROJ),$(SUFFIXES))
 SCRIPTDIR := Scripts
-EXEDIR := bin/Debug
+EXEFILE := bin/$(PROJ).dll
 
 SRC := \
-	$(PROJ)/*.cs \
-	$(PROJ)/Group/*.cs \
-	$(PROJ)/Parser/*.cs \
-	$(PROJ)/Properties/*.cs
+	*.cs \
+	Group/*.cs \
+	Parser/*.cs
 
-SCRIPTS := $(wildcard $(PROJ)/$(SCRIPTDIR)/*.sh)
-SCRIPTSTARGET := $(notdir $(SCRIPTS))
+SCRIPTS := $(wildcard $(SCRIPTDIR)/*.sh)
+SCRIPTSTARGET := $(addprefix bin/,$(notdir $(SCRIPTS)))
 
 .PHONY: all run clean
 
 all: $(TARGET) $(SCRIPTSTARGET) ;
 
-$(PROJ)/$(EXEDIR)/$(TARGET): $(SRC)
-	xbuild
+$(TARGET): $(SRC)
+	dotnet publish -o bin
 
-$(TARGET): $(PROJ)/$(EXEDIR)/$(TARGET)
-	cp $(PROJ)/$(EXEDIR)/$(TARGET) $(TARGET)
-
-%.sh: $(PROJ)/$(SCRIPTDIR)/%.sh
+bin/%.sh: $(SCRIPTDIR)/%.sh
 	cp $< $@
 
 run: all
-	mono $(TARGET)
+	mono $(EXEFILE)
 
 clean:
 	rm -f $(TARGET)
 	rm -f $(SCRIPTSTARGET)
-	rm -rf $(PROJ)/bin
-	rm -rf $(PROJ)/obj
+	rm -rf bin/Debug
+	rm -rf obj
