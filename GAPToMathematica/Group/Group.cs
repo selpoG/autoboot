@@ -19,9 +19,9 @@ namespace GAPToMathematica
 		public readonly IrreducibleRepresentations Irreps;
 		public readonly RepresentativesOfConjugacyClasses Representatives;
 		public readonly GroupGenerators Generators;
-		public readonly List<GroupElement> Elements;
+		public readonly List<FreeGroupElement> Elements;
 		public readonly int NumberOfConjugacyClasses, NumberOfGenerators;
-		public Group(GroupID id, SizeOfConjugacyClasses scg, CharacterTable ct, IrreducibleRepresentations irrep, IEnumerable<GroupElement> elements = null)
+		public Group(GroupID id, SizeOfConjugacyClasses scg, CharacterTable ct, IrreducibleRepresentations irrep, IEnumerable<FreeGroupElement> elements = null)
 		{
 			Id = id;
 			Sizes = scg;
@@ -31,7 +31,7 @@ namespace GAPToMathematica
 			Generators = Representatives.AllGenerators;
 			NumberOfConjugacyClasses = Sizes.Count;
 			NumberOfGenerators = Generators.Count;
-			Elements = elements == null ? null : new List<GroupElement>(elements);
+			Elements = elements == null ? null : new List<FreeGroupElement>(elements);
 		}
 		public bool Check()
 		{
@@ -60,7 +60,7 @@ namespace GAPToMathematica
 			sb.Append($"(gen) = {Generators}\n");
 			sb.Append($"(cggen) = {Representatives}\n");
 			sb.Append($"(irrep) = {Irreps}\n");
-			if (Elements != null) sb.Append("(elements) = {" + string.Join(", ", Elements.Select(g => g.ToString(Generators.Generators[0]))) + "}");
+			if (Elements != null) sb.Append("(elements) = {" + string.Join(", ", Elements) + "}");
 			return sb.ToString();
 		}
 		public static readonly Parser<Group> Parser = from id in GroupID.Parser
@@ -68,7 +68,7 @@ namespace GAPToMathematica
 													  from ct in CharacterTable.Parser
 													  from ir in IrreducibleRepresentations.Parser
 													  from elems in (from mark in Parse.String("(elements)=")
-																	 from elems in GroupElement.Parser.ToSequence()
+																	 from elems in FreeGroupElement.Parser.ToSequence()
 																	 select elems).Optional()
 													  select new Group(id, cgs, ct, ir, elems.GetOrDefault());
 	}

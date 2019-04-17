@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 
 namespace GAPToMathematica
 {
@@ -15,7 +14,7 @@ namespace GAPToMathematica
 													   Irreps,
 													   Elements == null ? ""
 													   : ",\nFunction[" + Generators.ToString().Replace("\"", "")
-													   + ", {" + string.Join(", ", Elements.Select(g => g.ToString(Generators.Generators[0]))).Replace("\"", "") + "}]");
+													   + ", {" + string.Join(", ", Elements) + "}]");
 		static readonly string mathematicaFormat = @"data[
 {0},
 {1},

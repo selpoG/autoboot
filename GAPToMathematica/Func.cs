@@ -40,6 +40,12 @@ namespace GAPToMathematica
 		public static Parser<int> PositiveInteger = from t in HeadDigit
 													from b in Digit.Many()
 													select int.Parse(new string(Concat(t, b).ToArray()));
+		public static Parser<int> NonzeroInteger = Or(PositiveInteger,
+													  from minus in Parse.Char('-')
+													  from t in HeadDigit
+													  from b in Digit.Many()
+													  select -int.Parse(new string(Concat(t, b).ToArray())));
+		public static Parser<int> Integer = Or(NonzeroInteger, from zero in Parse.Char('0') select 0);
 		// "[ (comma seperated sequence of p) ]"
 		// "[  ]", "[ p ]", "[ p, p ]", ...
 		public static Parser<List<T>> ToSequence<T>(this Parser<T> p)
