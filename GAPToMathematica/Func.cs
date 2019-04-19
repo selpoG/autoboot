@@ -63,9 +63,12 @@ namespace GAPToMathematica
 			return none.Or(many);
 		}
 		public static int NumberOfGroups(int order) => int.Parse(Exec(Path.Combine(E.ExeFileDirectory, "numgroup.sh") + $" {order}"));
-		public static string GroupInfo(string group) => Exec(Path.Combine(E.ExeFileDirectory, "groupinfo.sh") + $" \\\"{group}\\\"");
-		public static string GroupInfo(int order, int id) => Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}");
-		public static string GroupInfo(int order, int id, int milliseconds) => Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}", milliseconds);
+		public static string GroupInfo(string group, bool unitary = false)
+			=> Exec(Path.Combine(E.ExeFileDirectory, "groupinfo.sh") + $" \\\"{group}\\\"" + (unitary ? " :unitary" : ""));
+		public static string GroupInfo(int order, int id, bool unitary = false)
+			=> Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}" + (unitary ? " :unitary" : ""));
+		public static string GroupInfo(int order, int id, int milliseconds, bool unitary = false)
+			=> Exec(Path.Combine(E.ExeFileDirectory, "smallgroup.sh") + $" {order} {id}" + (unitary ? " :unitary" : ""), milliseconds);
 		public static string Exec(string command)
 		{
 			var psi = new ProcessStartInfo

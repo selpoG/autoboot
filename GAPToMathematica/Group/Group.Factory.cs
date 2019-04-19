@@ -14,10 +14,10 @@ namespace GAPToMathematica
 			return m.WasSuccessful ? m.Value : null;
 		}
 		// C_n = (x^n=e)
-		public static Group CyclicGroup(int n)
+		public static Group CyclicGroup(int n, bool unitary = false)
 		{
 			if (n <= 1) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"CyclicGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"CyclicGroup({n})", unitary));
 		}
 		// C_(n1) * ... * C_(nk)
 		public static Group AbelianGroup(params int[] ns)
@@ -28,28 +28,28 @@ namespace GAPToMathematica
 			if (pos.Count < 1) throw new ArgumentOutOfRangeException();
 			return GroupFromGAP(Func.GroupInfo($"AbelianGroup([{string.Join(", ", pos)}])"));
 		}
-		public static Group ElementaryAbelianGroup(int n)
+		public static Group ElementaryAbelianGroup(int n, bool unitary = false)
 		{
 			var f = n.Factorize();
 			if (f.Count != 1) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"ElementaryAbelianGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"ElementaryAbelianGroup({n})", unitary));
 		}
-		public static Group DihedralGroup(int n)
+		public static Group DihedralGroup(int n, bool unitary = false)
 		{
 			if (n < 2 || n % 2 != 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"DihedralGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"DihedralGroup({n})", unitary));
 		}
-		public static Group QuaternionGroup(int n)
+		public static Group QuaternionGroup(int n, bool unitary = false)
 		{
 			if (n < 4 || n % 4 != 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"QuaternionGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"QuaternionGroup({n})", unitary));
 		}
-		public static Group DicyclicGroup(int n)
+		public static Group DicyclicGroup(int n, bool unitary = false)
 		{
 			if (n < 4 || n % 4 != 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"DicyclicGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"DicyclicGroup({n})", unitary));
 		}
-		public static Group ExtraspecialGroup(int n, int e)
+		public static Group ExtraspecialGroup(int n, int e, bool unitary = false)
 		{
 			var f = n.Factorize();
 			if (f.Count != 1) throw new ArgumentOutOfRangeException();
@@ -57,48 +57,48 @@ namespace GAPToMathematica
 			var q = f[p];
 			if (p == 2 || q % 2 == 0) throw new ArgumentOutOfRangeException();
 			if (e != p && e != p * p) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"ExtraspecialGroup({n}, {e})"));
+			return GroupFromGAP(Func.GroupInfo($"ExtraspecialGroup({n}, {e})", unitary));
 		}
-		public static Group ExtraspecialGroup(int n, bool plus)
+		public static Group ExtraspecialGroup(int n, bool plus, bool unitary = false)
 		{
 			var f = n.Factorize();
 			if (f.Count != 1) throw new ArgumentOutOfRangeException();
 			var p = f.Keys.First();
 			var q = f[p];
 			if (q % 2 == 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"ExtraspecialGroup({n}, {(plus ? "'+'" : "'-'")})"));
+			return GroupFromGAP(Func.GroupInfo($"ExtraspecialGroup({n}, {(plus ? "'+'" : "'-'")})", unitary));
 		}
-		public static Group AlternatingGroup(int n)
+		public static Group AlternatingGroup(int n, bool unitary = false)
 		{
 			if (n < 3) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"AlternatingGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"AlternatingGroup({n})", unitary));
 		}
-		public static Group SymmetricGroup(int n)
+		public static Group SymmetricGroup(int n, bool unitary = false)
 		{
 			if (n < 2) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"SymmetricGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"SymmetricGroup({n})", unitary));
 		}
-		public static Group MathieuGroup(int n)
+		public static Group MathieuGroup(int n, bool unitary = false)
 		{
 			if (n < 9 || (12 < n && n < 21) || 24 < n) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"MathieuGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"MathieuGroup({n})", unitary));
 		}
-		public static Group SuzukiGroup(int n)
+		public static Group SuzukiGroup(int n, bool unitary = false)
 		{
 			var f = n.Factorize();
 			if (f.Count != 1 || !f.ContainsKey(2) || f[2] % 2 == 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"SuzukiGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"SuzukiGroup({n})", unitary));
 		}
-		public static Group ReeGroup(int n)
+		public static Group ReeGroup(int n, bool unitary = false)
 		{
 			var f = n.Factorize();
 			if (f.Count != 1 || !f.ContainsKey(3) || f[3] % 2 == 0) throw new ArgumentOutOfRangeException();
-			return GroupFromGAP(Func.GroupInfo($"ReeGroup({n})"));
+			return GroupFromGAP(Func.GroupInfo($"ReeGroup({n})", unitary));
 		}
-		public static Group SmallGroup(int order, int id)
+		public static Group SmallGroup(int order, int id, bool unitary = false)
 		{
 			if (order < 2 || id < 1) throw new ArgumentOutOfRangeException();
-			var info = Func.GroupInfo(order, id, 300 * 1000);
+			var info = Func.GroupInfo(order, id, 300 * 1000, unitary);
 			if (info == null) throw new TimeoutException();
 			var g = GroupFromGAP(info);
 			Debug.Assert(g == null || (g.Id.Order == order && g.Id.Id == id));

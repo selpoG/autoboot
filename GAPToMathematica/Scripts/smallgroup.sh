@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if [ "$#" != "2" ]; then
-   echo "Usage: smallgroup.sh <order> <id>"
+if [ "$#" -ne "2" -a "$#" -ne "3" ]; then
+   echo "Usage: smallgroup.sh <order> <id> [:unitary]"
    exit 1
 fi;
 
@@ -13,7 +13,7 @@ return ExtRepOfObj(PreImagesRepresentative(hom, x));
 end;
 ct := Irr(g);
 gen := GeneratorsOfGroup(g);
-irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x));
+irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x$3));
 calcG := function()
 local x, irr;
 Print("(id)=", IdGroup(g));

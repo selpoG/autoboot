@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if [ "$#" != "1" ]; then
-   echo "Usage: groupinfo.sh <group>"
+if [ "$#" -ne "1" -a "$#" -ne "2" ]; then
+   echo "Usage: groupinfo.sh <group> [:unitary]"
    exit 1
 fi;
 
@@ -14,7 +14,7 @@ return ExtRepOfObj(PreImagesRepresentative(hom, x));
 end;
 ct := Irr(g);
 gen := GeneratorsOfGroup(g);
-irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x));
+irrs := List(ct, x -> IrreducibleRepresentationsDixon(g, x$2));
 calcG := function()
 local x, irr;
 Print("(id)=", IdGroup(g));

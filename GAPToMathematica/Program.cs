@@ -16,6 +16,10 @@ namespace GAPToMathematica
 		public static readonly string ExeFileDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 		static void Main()
 		{
+			Console.Write("unitary? [Y/n] >> ");
+			var flag_str = Console.ReadLine();
+			var unitary = flag_str.Length == 0 || flag_str[0] == 'Y' || flag_str[0] == 'y';
+			Console.WriteLine(unitary ? "unitary irreps" : "non-unitary irreps");
 			Console.Write("order >> ");
 			var G = int.Parse(Console.ReadLine());
 			var num = Func.NumberOfGroups(G);
@@ -24,7 +28,7 @@ namespace GAPToMathematica
 			var i = int.Parse(Console.ReadLine());
 			try
 			{
-				var g = Group.SmallGroup(G, i);
+				var g = Group.SmallGroup(G, i, unitary);
 				if (g != null && g.Check())
 				{
 					Console.WriteLine("Success: SmallGroup({0}, {1})", G, i);
