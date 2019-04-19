@@ -54,6 +54,16 @@ All irreps are labeled by `v[n]` (`n=0,1/2,1,3/2,...`).
 
 `G[id]` is `v[0]` and the standard vector representation is `v[1]`.
 
+## `G=su[4]`
+
+All irreps are labeled by `v[n, m, l]` (`n,m,l=0,1,2,...` and `n>=m>=l`).
+
+An irrep `v[n, m, l]` corresponds to a young tableaux
+which has n boxes in first row, m boxed in second row and l boxed in third row.
+
+`G[id]` is `v[0, 0, 0]` and the standard vector representation is `v[1, 0, 0]`.
+The adjoint representation is `v[2, 1, 1]`.
+
 ## `G=dih[N]` (`N`: even)
 
 All irreps are labeled by `i[\pm 1,\pm 1]` and `v[n]` (`n=1,2,...,N/2-1`).

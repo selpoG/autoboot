@@ -31,7 +31,7 @@ More formally, groups which we can treat as a global symmetry of CFT are defined
 ```EBNF
 $group = $finite_group | $lie_group | pGroup[$group,$group]
 $finite_group = group[$n,$n] | dih[$n] | dic[$n]
-$lie_group = su[2] | so[2] | so[3] | o[2] | o[3]
+$lie_group = su[2] | so[2] | so[3] | o[2] | o[3] | su[4]
 $n = positive_integer
 ```
 
