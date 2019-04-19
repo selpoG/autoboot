@@ -82,13 +82,14 @@ toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
 toTeX::usage = "toTeX[eq] gives latex string of eq (you need call Print[toTeX[eq]] to paste to your tex file).
 toTeX[eqn[{a,b,...}]] gives latex string of eq with align environment (you need call Print[toTeX[eq]] to paste to your tex file)."
 repToTeX::usage = "repToTeX[r] is needed to transrate irrep-object r as latex string. Please set appropriate value."
-opToTeX::usage = "opToTeX[o] is needed to transrate operator object o as latex string. Please set appropriate value."
+opToTeX::usage = "opToTeX[o] is needed to transrate operator name o as latex string. Please set appropriate value."
 
 Begin["`Private`"]
 
 setOPE::usage = "setOPE[r,s,t] calculates all values of ope[r,s,t].
 setOPE[r,s] calls setOPE[r,s,t] for all t in prod[r,s]."
 setAllOPE::usage = "setAllOPE[reps] calls setOPE[r,s] and setOPE[t,dual[t],id] for all r,s in reps and t in prod[r,s]."
+opToTeX2::usage = "opToTeX2[op[...]] is needed to transrate operator object op[...] as latex string."
 
 allPublicSymbol = {clearCG, inv, ope, cor,
 	\[Sigma], \[Tau], \[Omega], six, isReal, isComplex, isPseaudo, op, dualOp, format,
@@ -516,7 +517,7 @@ Fp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Fp[c, d, a,
 Hp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Hp[c, d, a, b, o]
 addOp[o : op[x_, r_, 1 | -1, 1]] := myAbortProtect[allops[o] = 1; add[allopsForBoot, o];
 	If[!KeyExistsQ[allreps, r], allreps[r] = <|o->1|>, allreps[r][o] = 1];
-	op[x] = op[x, r];
+	If[Length[op[x]] == 1, op[x] = op[x, r]];
 	If[!KeyExistsQ[ord, x], ord[x] = Length[ord]];]
 setOps[ops_List] := myAbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
 
@@ -529,6 +530,9 @@ FtoTeX[x_] := (Print["Unknown pattern at FtoTeX:", x]; ToString[x])
 termToTeX[x_] := (Print["Unknown pattern at termToTeX:", x]; ToString[x])
 
 opToTeX[op] := "\\op{O}"
+
+opToTeX2[op[x_, r_, p : 1 | -1, 1 | -1]] /; !isComplex[r] := TemplateApply[If[p > 0, "``", "\\overline{``}"], opToTeX[x]]
+opToTeX2[op[x_, r_?isComplex, 1, 1 | -1]] := TemplateApply[If[r === minrep[r, dual[r]], "``", "\\overline{``}"], opToTeX[x]]
 
 FtoTeX[F[a_, b_, c_, d_]] :=
 	TemplateApply[
@@ -559,11 +563,11 @@ FtoTeX[Hp[a_, b_, c_, d_, 0]] :=
 \[Beta]toTeX[\[Beta][a_, b_, c_][n_]] :=
 	TemplateApply[
 		"\\lambda_{`o1` `o2` `o3`}^{(`n`)}",
-		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]], "n" -> numToTeX[n]|>]
+		<|"o1" -> opToTeX2[a], "o2" -> opToTeX2[b], "o3" -> opToTeX2[c], "n" -> numToTeX[n]|>]
 \[Beta]toTeX[\[Beta][a_, b_, c_][1]] :=
 	TemplateApply[
 		"\\lambda_{`o1` `o2` `o3`}",
-		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]]|>]
+		<|"o1" -> opToTeX2[a], "o2" -> opToTeX2[b], "o3" -> opToTeX2[c]|>]
 
 \[Beta]FtoTeX[(x : \[Beta][__][_]) (y : \[Beta][__][_]) (z_F | z_H | z_Fp | z_Hp)] :=
 	TemplateApply[
