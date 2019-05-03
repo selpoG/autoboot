@@ -3,7 +3,7 @@ BeginPackage["RootSystem`"]
 
 dimension::usage = "dimension[t,r,l] gives the dimension of the irrep with the highest weight l. The Lie algebra is of type t and rank r."
 irrep::usage = "irrep[t,r,l] gives the character object of the irrep with the highest weight l. The Lie algebra is of type t and rank r."
-product::usage = "product[ch1,ch2] gives the character object of the product representation of two representation ch1 and ch2."
+productReps::usage = "productReps[ch1,ch2] gives the character object of the product representation of two representation ch1 and ch2."
 decompose::usage = "decompose[c] gives the irreducible decomposition of the character c."
 ch::usage = "ch[t,r,x] represents a character object in the Lie algebra of type t and rank r. x is a list of w->d in which w is a weight and d is the dimension of the weight space with weight w."
 
@@ -12,7 +12,7 @@ Begin["`Private`"]
 bilinear::usage = "bilinear[t,r][x,y] is a bilinear form of weight x and y."
 lexComp::usage = "lexComp[x,y] compares two weights x and y. Let e be an infinitesimal, the weyl chamber is selected by the vector (e,e^2,e^3,...). If lexComp[x,y] > 0, x is higher than y."
 
-allPublicSymbol = {dimension, irrep, product, decompose, ch}
+allPublicSymbol = {dimension, irrep, productReps, decompose, ch}
 
 protectCounter = 0
 myUnprotect[expr_] := Module[{ans},
@@ -98,7 +98,7 @@ x:irrep[type_, rank_, \[Lambda]_] := Module[{ans},
 		];];
 	myAbortProtect[x = ch[type, rank, ans]]]
 
-product[ch[type_, rank_, p_List], ch[type_, rank_, q_List]] :=
+productReps[ch[type_, rank_, p_List], ch[type_, rank_, q_List]] :=
 	ch[type, rank, Module[{set = <||>, x, y, z},
 		Do[
 			z = x[[1]] + y[[1]];
