@@ -1,19 +1,13 @@
-(* ::Package:: *)
-
-(* ::Input:: *)
 SetDirectory[ParentDirectory[NotebookDirectory[]]]
 
 
-(* ::Input:: *)
 <<"group.m"
 
 
-(* ::Input:: *)
 o2 = getO[2];
 setGroup[o2];
 
 
-(* ::Input:: *)
 setOps[{op[s, o2[id]], op[v, v[1]], op[t, v[2]]}];
 format[eq = bootAll[]]
 sdp = makeSDP[eq];
@@ -23,7 +17,6 @@ WriteString[buf, py];
 Close[buf];
 
 
-(* ::Input:: *)
 opToTeX[s] = "s";
 opToTeX[v] = "\\phi";
 opToTeX[t] = "t";

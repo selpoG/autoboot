@@ -1,20 +1,14 @@
-(* ::Package:: *)
-
-(* ::Input:: *)
 SetDirectory[ParentDirectory[NotebookDirectory[]]]
 
 
-(* ::Input:: *)
 <<"ngroup.m"
 setPrecision[100]
 
 
-(* ::Input:: *)
 a5 = getGroup[60, 5];
 setGroup[a5];
 
 
-(* ::Input:: *)
 setOps[{op[e, rep[1]], op[v, rep[2]], op[t, rep[5]]}];
 format[eq = bootAll[]]
 sdp = makeSDP[eq];
@@ -24,7 +18,6 @@ WriteString[buf, py];
 Close[buf];
 
 
-(* ::Input:: *)
 opToTeX[e] = "\\epsilon";
 opToTeX[v] = "v";
 opToTeX[t] = "t";
