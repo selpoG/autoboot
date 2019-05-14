@@ -62,19 +62,25 @@ import sys
 from sage.rings.rational import Rational
 from sage.all import pi, e, euler_gamma, catalan, khinchin, glaisher, sin, cos, tan, sec, csc, cot, sinh, cosh, tanh, sech, csch, coth, asin, acos, atan, asec, acsc, acot, asinh, acosh, atanh, asech, acsch, acoth, sqrt, log, exp, I
 
-context = cb.context_for_scalar(epsilon=0.5, Lambda=11)
-spins = list(range(22))
-secs = {`secs`}
-scalarnum = `scalarnum`
-nu_max = 8
+# <-- edit from here
+context = cb.context_for_scalar(epsilon=0.5, Lambda=15, Prec=800)
+spins = list(range(27)) + [49, 50]
+nu_max = 14
+# {(r, s): d, ...} means operators in irrep r and spin s must have Delta >= d.
 mygap = {}
 def gaps(deltas):
 	return mygap
 
 save_dir = \".\"
 
-def get_path(path):
-	return os.path.join(save_dir, path)
+def name(deltas):
+	return \"sdp-`filename`\".format(deltas).replace(\"/\", \"#\")
+
+# edit to here -->
+
+# do not edit from here
+secs = {`secs`}
+scalarnum = `scalarnum`
 
 @cached_function
 def prepare_g(spin, Delta_12, Delta_34):
@@ -123,19 +129,12 @@ def make_SDP(delta):
 	obj = 0
 	return context.sumrule_to_SDP(norm, obj, pvms)
 
-def name(deltas):
-	return \"sdp-`filename`\".format(deltas).replace(\"/\", \"#\")
-
-def has_done(deltas):
-	return os.path.exists(get_path(name(deltas) + \".xml\"))
-
-def writefl(mes):
-	print(mes, end=\"\")
-	sys.stdout.flush()
-
-def write_SDP(deltas):
-	prob = get_path(name(deltas) + \".xml\")
-	if not has_done(deltas): make_SDP(deltas).write(prob)
+def write_SDP(deltas, dir=None, file=None, overwrite=False):
+	if dir is None: dir = save_dir
+	if file is None: file = name(deltas) + \".xml\"
+	path = os.path.join(dir, file)
+	if overwrite or not os.path.exists(path): make_SDP(deltas).write(path)
+	return path
 "
 
 Protect[pyeval, createPython]
