@@ -4,6 +4,7 @@ e::usage = "e[n] gives n-th root of 1 with minimum positive argument.
 e[n, m] gives m-th power of e[n]."
 MyReap::usage = "MyReap[x] gives a list of values sowed in evaluation of x."
 DoMany::usage = "DoMany[x,{y}] evaluates Do[x,y]. For example, DoMany[x,{{a,3},{b,4},{c,2,5}}] is equivalent to Do[x,{a,3},{b,4},{c,2,5}]."
+SumMany::usage = "SumMany[x,{y}] evaluates Sum[x,y]. For example, SumMany[x,{{a,3},{b,4},{c,2,5}}] is equivalent to Sum[x,{a,3},{b,4},{c,2,5}]."
 dupcomb::usage = "dupcomb[x,k] gives a list of sorted selection of k elements from x with repetition."
 removeSGs::usage = "removeSGs[] removes all SmallGroup and LieGroup packages from ContextPath."
 lhs::usage = "lhs[x==y] gives left-hand side x."
@@ -45,7 +46,12 @@ e[n_] := Cos[2 Pi/n] + I Sin[2 Pi/n]
 e[n_, m_] := Cos[2 Pi m/n] + I Sin[2 Pi m/n]
 
 DoMany[x_, {y__}] := Do[x, y]
+DoMany[x_, {}] := (x;)
 SetAttributes[DoMany, HoldFirst]
+
+SumMany[x_, {y__}] := Sum[x, y]
+SumMany[x_, {}] := x
+SetAttributes[SumMany, HoldFirst]
 
 dupcombHelper[n_, k_] := Module[{i, j}, MyReap[DoMany[Sow[Array[i, k]], Join[{{i[1], n}}, Table[{i[j], i[j - 1], n}, {j, 2, k}]]]]]
 dupcomb[x_List, k_] := Module[{i, ind}, Table[Table[x[[i]], {i, ind}], {ind, dupcombHelper[Length[x], k]}]]
@@ -113,7 +119,7 @@ clear[pqueue[q_]] ^:= AbortProtect @ Module[{i}, Do[arr[q][i] = ., {i, len[q]}];
 
 reverseIndex[x_List] := Module[{d = <||>}, Scan[(d[#] = Length[d]) &, x]; d]
 
-Protect[e, MyReap, DoMany, dupcomb, removeSGs, lhs, rhs, importPackage, zero,
+Protect[e, MyReap, DoMany, SumMany, dupcomb, removeSGs, lhs, rhs, importPackage, zero,
 	newSet, set, newUF, uf, add, has, remove, clear, keys, size, root, unite, classify, reverseIndex]
 
 End[ ]
