@@ -43,7 +43,7 @@ Once you get a group `G`:
 
 1. Get bootstrap equations by `bootAll[]`. If you need human-readable format, use `format[...]`.
 
-1. *(Optionally)* You can get a Python code for [cboot](https://github.com/tohtsky/cboot) by `toString[makeSDP[eq]]`.
+1. *(Optionally)* You can get a Python code for [cboot](https://github.com/tohtsky/cboot) by `toCboot[makeSDP[eq]]`.
 
 ### Irreps
 
