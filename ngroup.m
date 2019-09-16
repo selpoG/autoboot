@@ -73,6 +73,43 @@ setPrecision::null = "precision is null! Please call setPrecision first."
 setPrecision[prec_?NumericQ] := (If[precision =!= Null, Message[setPrecision::dup, precision, prec]]; precision = prec; epsilon = 10^(-prec + 10);)
 num[x_] := Chop[N[x, precision], epsilon]
 
+getGroupAndUnitarize[data_] := checkPrec[getGroupAndUnitarize[data] = Module[{dat, ncg$, ct$, rep$, mul$, ip, file, G, r, s, a, b, mats, j, n, m, myprod, z, g, i, elems, x, elemsFunc, gen, repU},
+	{g, i} = dat[[1]];
+	ncg$ = Length[mul$ = dat[[2]]];
+	ct$ = num @ Expand[dat[[3]]];
+	rep$ = num @ Expand[dat[[5]]];
+	ip[r_, s_] := num[Total[Conjugate[r] s mul$] / g];
+	z:myprod[rep[a_]] := z = Module[{x}, MyReap[Do[Do[Sow[rep[x]], Round @ num @ ip[ct$[[x]], ct$[[a]]^2]], {x, ncg$}]]];
+	elemsFunc = dat[[6]];
+	repU = Table[
+		elems = elemsFunc@@gen;
+		M = Sum[ConjugateTranspose[x].x, {x, elems}]/g;
+		basis = Orthogonalize[MatrixPower[f1, 0], Conjugate[#1].M.#2&];
+		Conjugate[basis].M.#.Transpose[basis] & /@ gen
+		, {gen, rep$}];
+	AbortProtect[
+		G = groupU[g, i];
+		G[id] = rep[1];
+		G[ncg] = ncg$;
+		G[ct] = ct$;
+		G[dim[rep[a_]]] := G[dim[rep[a]]] = Round @ ct$[[a, 1]];
+		G[prod[rep[a_], rep[a_]]] := myprod[rep[a]];
+		G[prod[rep[a_], rep[b_]]] := G[prod[rep[a], rep[b]]] =
+			Module[{x}, MyReap[Do[Do[Sow[rep[x]], Round @ num @ ip[ct$[[x]], ct$[[a]] ct$[[b]]]], {x, ncg$}]]];
+		G[dual[rep[a_]]] := G[dual[rep[a]]] =
+			Module[{r, x}, r = Conjugate[ct$[[a]]]; Catch[Do[If[ip[ct$[[x]], r] != 0, Throw[rep[x]]], {x, ncg$}]]];
+		G[isrep[_]] := False;
+		G[isrep[rep[a_]]] := 1 <= a <= G[ncg];
+		G[gA] = {};
+		G[gG] = ToExpression[TemplateApply["NGroupInfo`a`groupU[`g`, `i`][NGroupInfo`a`Private`a``x`]", <|"a" -> "`", "g" -> g, "i" -> i, "x" -> #|>]] & /@ dat[[4]];
+		set[r:rep[_], mats_] := Module[{j}, Do[Evaluate[G[gG][[j]][r]] = mats[[j]], {j, Length[G[gG]]}]];
+		set[mats_] := Do[set[rep[j], mats[[j]]], {j, Length[mats]}];
+		set[rep$];
+		G[minrep[rep[n_], rep[m_]]] := rep[Min[n, m]];
+		G
+	]
+]]
+
 getGroup[g_, i_] := checkPrec[getGroup[g, i] = Module[{dat, ncg$, ct$, rep$, mul$, ip, file, G, r, s, a, b, mats, j, n, m, myprod, z},
 	file = TemplateApply["sgd/sg.`g`.`i`.m", <|"g" -> g, "i" -> i|>];
 	If[! FileExistsQ[file], Return[Null]];

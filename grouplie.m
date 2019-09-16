@@ -21,6 +21,7 @@ Begin["`Private`"]
 CommonFunctions`importPackage["GroupInfo`", "GroupInfoLie`Private`", {"id", "dim", "prod", "dual", "isrep", "gG", "gA", "minrep", "v", "i"}]
 CommonFunctions`importPackage["RootSystem`", "GroupInfoLie`Private`", {"dimension", "irrep", "productReps", "decompose"}]
 MyReap = CommonFunctions`MyReap
+DoMany = CommonFunctions`DoMany
 s
 t
 x
