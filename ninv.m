@@ -138,20 +138,20 @@ x:invs[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{t = inv[r1, r2, r3, r4]
 eq[r_, s_, t_] /; inv[{r, s}, {t}] > 0 :=
 Module[{a, b, c, x, y, z, X, g, e, d1 = dim[r], d2 = dim[s], d3 = dim[t], d},
 	d = d1 d2 d3;
-	num @ Simplify @ MyReap[
+	SparseArray @ num @ Simplify @ MyReap[
 		Do[
-			e = ConstantArray[0, d];
+			e = SparseArray[{}, d];
 			Do[e[[d2 d3 (x - 1) + d3 (b - 1) + c]] -= X[r][[a, x]], {x, d1}];
 			Do[e[[d2 d3 (a - 1) + d3 (y - 1) + c]] -= X[s][[b, y]], {y, d2}];
 			Do[e[[d2 d3 (a - 1) + d3 (b - 1) + z]] += X[t][[z, c]], {z, d3}];
-			Sow[e],
-		{a, d1}, {b, d2}, {c, d3}, {X, gA}];
+			Sow[e]
+		, {a, d1}, {b, d2}, {c, d3}, {X, gA}];
 		Do[
-			e = ConstantArray[0, d];
+			e = SparseArray[{}, d];
 			Do[e[[d2 d3 (x - 1) + d3 (y - 1) + c]] -= g[r][[a, x]] g[s][[b, y]], {x, d1}, {y, d2}];
 			Do[e[[d2 d3 (a - 1) + d3 (b - 1) + z]] += g[t][[z, c]], {z, d3}];
-			Sow[e],
-		{a, d1}, {b, d2}, {c, d3}, {g, gG}]
+			Sow[e]
+		, {a, d1}, {b, d2}, {c, d3}, {g, gG}]
 	]
 ]
 

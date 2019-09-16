@@ -138,20 +138,20 @@ x:invs[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{t = inv[r1, r2, r3, r4]
 eq[r_, s_, t_] /; inv[{r, s}, {t}] > 0 :=
 Module[{a, b, c, x, y, z, X, g, e, d1 = dim[r], d2 = dim[s], d3 = dim[t], d},
 	d = d1 d2 d3;
-	MyReap[
+	SparseArray @ MyReap[
 		Do[
-			e = ConstantArray[0, d];
+			e = SparseArray[{}, d];
 			Do[e[[d2 d3 (x - 1) + d3 (b - 1) + c]] -= X[r][[a, x]], {x, d1}];
 			Do[e[[d2 d3 (a - 1) + d3 (y - 1) + c]] -= X[s][[b, y]], {y, d2}];
 			Do[e[[d2 d3 (a - 1) + d3 (b - 1) + z]] += X[t][[z, c]], {z, d3}];
-			Sow[e],
-		{a, d1}, {b, d2}, {c, d3}, {X, gA}];
+			Sow[e]
+		, {a, d1}, {b, d2}, {c, d3}, {X, gA}];
 		Do[
-			e = ConstantArray[0, d];
+			e = SparseArray[{}, d];
 			Do[e[[d2 d3 (x - 1) + d3 (y - 1) + c]] -= g[r][[a, x]] g[s][[b, y]], {x, d1}, {y, d2}];
 			Do[e[[d2 d3 (a - 1) + d3 (b - 1) + z]] += g[t][[z, c]], {z, d3}];
-			Sow[e],
-		{a, d1}, {b, d2}, {c, d3}, {g, gG}]
+			Sow[e]
+		, {a, d1}, {b, d2}, {c, d3}, {g, gG}]
 	]
 ]
 
@@ -161,7 +161,7 @@ Module[{sol, a, b, c, d = dim[r], d3 = dim[t], l, n, sym, tmp, v, p, even, odd},
 		tmp = v;
 		Do[tmp[[d d3 (a - 1) + d3 (b - 1) + c]] += p v[[d d3 (b - 1) + d3 (a - 1) + c]], {a, d}, {b, d}, {c, d3}];
 		Expand[tmp]);
-	l = Length[sol = NullSpace @ Expand @ eq[r, r, t]];
+	l = Length[sol = NullSpace @ eq[r, r, t]];
 	If[l == 0, Message[setOPE::imcmpt, r, r, t]; Return[]];
 	If[l != inv[{r, r}, {t}], Message[setOPE::diff, r, r, t, l, inv[{r, r}, {t}]]; Return[]];
 	even = Select[simp @ Orthogonalize[simp[sym[#, +1] & /@ sol], simp[Conjugate[#1].#2] &], AnyTrue[#, simp @ # != 0 &] &];
@@ -177,7 +177,7 @@ Module[{sol, a, b, c, d = dim[r], d3 = dim[t], l, n, sym, tmp, v, p, even, odd},
 
 x:setOPE[r_, s_, t_] /; inv[{r, s}, {t}] > 0 := x = setOPE[s, r, t] =
 Module[{sol, a, b, c, d1 = dim[r], d2 = dim[s], d3 = dim[t], l, n},
-	l = Length[sol = NullSpace @ Expand @ eq[r, s, t]];
+	l = Length[sol = NullSpace @ eq[r, s, t]];
 	If[l == 0, Message[setOPE::imcmpt, r, s, t]; Return[]];
 	If[l != inv[{r, s}, {t}], Message[setOPE::diff, r, s, t, l, inv[{r, s}, {t}]]; Return[]];
 	sol = simp @ Orthogonalize[sol, simp[Conjugate[#1].#2] &];
