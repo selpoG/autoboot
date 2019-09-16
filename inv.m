@@ -1,6 +1,7 @@
 (* Do not import this package directly. *)
 Needs["CommonFunctions`", "common.m"]
 Needs["ToPython`", "topy.m"]
+Needs["ToCpp`", "tocpp.m"]
 ClebschGordan`clearCG[];
 
 BeginPackage["ClebschGordan`"]
@@ -78,6 +79,7 @@ makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertic
 makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
 sdpobj::usage = "sdpobj[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
+toQboot::usage = "toQboot[sdp] converts sdp-object into c++ code for qboot."
 toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
 toTeX::usage = "toTeX[eq] gives latex string of eq (you need call Print[toTeX[eq]] to paste to your tex file).
 toTeX[eqn[{a,b,...}]] gives latex string of eq with align environment (you need call Print[toTeX[eq]] to paste to your tex file)."
@@ -668,6 +670,67 @@ makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scaln
 		Do[tmp = makeMat[extract[z, s]]; secs[s] = Length[tmp]; Do[mat[s, i] = f[tmp[[i]]], {i, secs[s]}];, {s, Drop[sec, 2]}];
 		sdpobj[secs, scalnum, keys[val], mat]
 	]
+
+toCString[F[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[H[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Fp[x_, y_, z_, w_, 0]] := TemplateApply["one, ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Hp[x_, y_, z_, w_, 0]] := TemplateApply["one, ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Fp[x_, y_, z_, w_, o_]] := TemplateApply["ops.at(\"`o`\"), ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w, "o"->o|>];
+toCString[Hp[x_, y_, z_, w_, o_]] := TemplateApply["ops.at(\"`o`\"), ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w, "o"->o|>];
+
+toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
+	Module[{s, v, o, revval = reverseIndex[vals], numeq = Length @ mat[unit, 1], secsStr, valsStr, filename, extdelta, exts, extops, scalarsecs, secname, matsize, terms, syms, n, i, e, r, c, f, regsym, eqStr, convert},
+		terms = ConstantArray[{}, numeq];
+		syms = ConstantArray[None, numeq];
+		Do[matsize[scalar, i] = Length @ mat[scalar, i][[1]], {i, scalarnum}];
+		Do[matsize[s, i] = Length @ mat[s, i][[1]], {s, Keys[secs]}, {i, secs[s]}];
+		secname[unit] = secname[unit, 1] = "\"unit\"";
+		secname[scalar, id_] := TemplateApply["\"(scalar, `n`)\"", <|"n" -> id - 1|>];
+		secname[op[op, r_, 1, p_], id_] := TemplateApply["\"(`r`, `p`, `n`)\"", <|"r" -> r, "p" -> (1 - p)/2, "n" -> id - 1|>];
+		secsStr = StringRiffle[Flatten[Function[s, Array[Function[i, TemplateApply[secTemplate, <|"sec" -> secname[s, i], "p" -> (1 - s[[4]])/2, "sz" -> matsize[s, i]|>]], secs[s]]] /@ Keys[secs]], "\n\t"];
+		valsStr = StringRiffle[Array[TemplateApply["val[`i`] = `v`;", <|"i" -> # - 1, "v" -> ToCpp`cppeval @ vals[[#]]|>] &, Length[vals]], "\n\t"];
+		exts = DeleteDuplicates[#[[1]] & /@ keys[allopsForBoot]];
+		filename = StringRiffle[TemplateApply["deltas.at(\"`k`\").str(8)", <|"k" -> #|>] & /@ exts, " + \"-\" + "];
+		extdelta = StringRiffle[Array[TemplateApply["deltas[\"`k`\"] = R(args[`i`]);", <|"i" -> #, "k" -> exts[[#]]|>] &, Length[exts]], "\n\t"];
+		extops = StringRiffle[TemplateApply["ops.emplace(\"`k`\", Op(deltas.at(\"`k`\"), 0, c));", <|"k" -> #|>] & /@ exts, "\n\t"];
+		scalarsecs = StringRiffle[Array[TemplateApply["secs.emplace_back(`sec`, `s`);", <|"sec" -> secname[scalar, #], "s" -> matsize[scalar, #]|>] &, scalarnum], "\n\t"];
+		regsym[e_, F] := (syms[[e]] = "Odd";);
+		regsym[e_, H] := (syms[[e]] = "Even";);
+		regsym[e_, Fp] := (syms[[e]] = "Odd";);
+		regsym[e_, Hp] := (syms[[e]] = "Even";);
+		(* diagonal *)
+		convert[0, block[1, 1, bl_]] := toCString[bl];
+		convert[0, block[-1, 1, bl_]] := TemplateApply["R(-1), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[0, block[1, v_, bl_]] := TemplateApply["val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[0, block[-1, v_, bl_]] := TemplateApply["-val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		(* off-diagonal *)
+		convert[1, block[1, 1, bl_]] := TemplateApply["R(2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[-1, 1, bl_]] := TemplateApply["R(-2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[1, v_, bl_]] := TemplateApply["2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[1, block[-1, v_, bl_]] := TemplateApply["-2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[s_, r_, r_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> r - 1, "block" -> convert[0, x]|>];
+		convert[s_, r_, c_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> c - 1, "block" -> convert[1, x]|>];
+		f[s_, n_, e_, r_, c_, 0] := None;
+		f[s_, n_, e_, r_, c_, x_Plus] := Scan[f[s, n, e, r, c, #] &, List @@ x];
+		f[s_, n_, e_, r_, c_, x_] := (regsym[e, x[[3, 0]]]; AppendTo[terms[[e]], convert[secname[s, n], r, c, x]]);
+		Do[f[unit, 1, e, 1, 1, mat[unit, 1][[e, 1, 1]]], {e, numeq}];
+		Do[f[scalar, n, e, r, c, mat[scalar, n][[e, r, c]]], {n, scalarnum}, {e, numeq}, {r, matsize[scalar, n]}, {c, matsize[scalar, n]}];
+		Do[f[s, n, e, r, c, mat[s, n][[e, r, c]]], {s, Keys[secs]}, {n, secs[s]}, {e, numeq}, {r, matsize[s, n]}, {c, matsize[s, n]}];
+		eqStr = StringRiffle[Array[TemplateApply[eqTemplate, <|"sym" -> syms[[#]], "terms" -> StringRiffle[terms[[#]], "\n\t\t"]|>] &, numeq], "\n\t"];
+		ToCpp`createCpp[secsStr, scalarsecs, valsStr, Length[vals], eqStr, Length[exts] + 1, extops, extdelta, filename]
+	]
+
+eqTemplate = "{
+		Eq eq(boot, `sym`);
+		`terms`
+		boot.add_equation(eq);
+	}"
+
+secTemplate = "{
+		Sector s(`sec`, `sz`, ContinuousType);
+		for (const auto& spin: spins) if (spin % 2 == `p`) s.add_op(spin);
+		secs.push_back(s);
+	}"
 
 toString[F[x_, y_, z_, w_]] := TemplateApply["get(F, \"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
 toString[H[x_, y_, z_, w_]] := TemplateApply["get(H, \"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
