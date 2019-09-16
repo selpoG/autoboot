@@ -65,6 +65,113 @@ getO[3] := getO[3] = AbortProtect @ Module[{G},
 	G
 ]
 
+tensor[x_, y_] := Module[{ix = Most @ ArrayRules[x], iy = Most @ ArrayRules[y], m = Length[y], i, j},
+	SparseArray[
+		Flatten @ Table[
+			m (i[[1, 1]] - 1) + (j[[1, 1]] - 1) + 1 -> i[[2]] j[[2]]
+		, {i, ix}, {j, iy}]
+	, {Length[x] m}]];
+
+fromFundamentals[type_, rank_Integer, dims_List, weight_List, frep_List, fhigh_List] := Module[
+{basis, rep, high, dim, extend, extendLoop, repMat, repMats, i, j},
+	Do[high[i] = fhigh[[i]], {i, rank}];
+	Do[rep[i][j] = frep[[i, j]], {i, rank}, {j, 2*rank}];
+	Do[rep[][j] = {{0}}, {j, 2*rank}];
+	dim[x_List] := Times @@ (dims[[#]] & /@ x);
+	dim[x___Integer] := dim[{x}];
+	dim[x_v] := dimension[type, rank, List @@ x];
+	t : rep[is__Integer][m_Integer] := t = Module[{l = {is}, n},
+		n = Length[l];
+		Sum[
+			KroneckerProduct[
+				SparseArray[{{i_, i_} -> 1}, dim @@ Take[l, i - 1]],
+				rep[l[[i]]][m],
+				SparseArray[{{i_, i_} -> 1}, dim @@ Drop[l, i]]
+			]
+		, {i, n}]];
+	rep[{x___Integer}] := rep[x];
+	high[x___Integer] := Fold[tensor[#1, high[#2]] &, {1}, {x}];
+	high[{x___Integer}] := high[x];
+	extend[y_List, vs_List] := TakeWhile[#, Norm[#] > 0 &] &@ Module[{v},
+		SparseArray /@ RowReduce @ MyReap[
+			Do[Sow[rep[y][i].v], {v, vs}, {i, rank}]
+		]];
+	extendLoop[y_List, vec_] := Module[{vs = Orthogonalize[{vec}], vrep, upto, temp, total = 0},
+		vrep = Total[weight[[#]] & /@ y];
+		upto = dimension[type, rank, vrep];
+		vrep = v @@ vrep;
+		temp = PrintTemporary["basis ", vrep, ": calculate upto ", upto];
+		vs = Join @@ MyReap @ Monitor[
+			While[total < upto, Sow[vs]; total += Length[vs]; vs = Orthogonalize @ extend[y, vs];]
+		, "dim = " <> ToString[total]];
+		NotebookDelete[temp];
+		vs];
+	basis[x___Integer] := basis[x] = SparseArray @ extendLoop[{x}, high[x]];
+	repMat[r___][m_] := Conjugate[basis[r]].rep[r][m].Transpose[basis[r]];
+	repMats[x_v] := Module[{is, ws},
+		ws = (List @@ x).Inverse[weight];
+		is = MyReap @ Do[Do[Sow[i], ws[[i]]], {i, rank}];
+		Array[repMat @@ is, 2*rank]];
+	repMats
+]
+
+getSU[n_Integer] := getSU[n] = AbortProtect @ Module[
+{type = "A", rank = n - 1, G, repMats, apply, cross, cross2, mat, basis, dims, innerProduct, gen, i, j, k},
+	apply[_, 0] := 0;
+	apply[m_, x_ + y_] := apply[m, x] + apply[m, y];
+	apply[m_, r_ x_] /; FreeQ[r, cross] := r apply[m, x];
+	apply[mat[j_, i_], cross[x___, i_, y___]] := cross2[x, j, y];
+	apply[_mat, _cross] := 0;
+	cross2[x___, i_, j_, y___] /; i > j := -cross2[x, j, i, y];
+	cross2[___, i_, i_, ___] := 0;
+	cross2[x___] := cross[x];
+	dims = Array[Binomial[rank + 1, #] &, rank];
+	Do[basis[k] = Module[{l},
+		l[0] = 0;
+		MyReap @ DoMany[Sow[cross @@ Array[l, k]], Table[{l[j], l[j - 1] + 1, rank + 1}, {j, k}]]]
+	, {k, rank}];
+	innerProduct[x_cross, x_cross] := 1;
+	innerProduct[_cross, _cross] := 0;
+	innerProduct[x_, y_ + z_] := innerProduct[x, y] + innerProduct[x, z];
+	innerProduct[x_ + y_, z_] := innerProduct[x, z] + innerProduct[y, z];
+	innerProduct[x_, r_ y_] /; FreeQ[r, cross] := r innerProduct[x, y];
+	innerProduct[r_ x_, y_] /; FreeQ[r, cross] := Conjugate[r] innerProduct[x, y];
+	innerProduct[0, _] := 0;
+	innerProduct[_, 0] := 0;
+	gen = Join[Table[mat[i + 1, i], {i, rank}], Table[mat[i, i + 1], {i, rank}]];
+	repMats = fromFundamentals[type, rank, dims,
+		Array[Join[ConstantArray[1, #], ConstantArray[0, rank - #]] &, rank],
+		Table[SparseArray @ Table[innerProduct[x, apply[gen[[m]], y]], {x, basis[l]}, {y, basis[l]}], {l, rank}, {m, 2 * rank}],
+		Array[SparseArray[{1->1}, dims[[#]]] &, rank]
+		];
+	G = su[n];
+	G[id] = v @@ ConstantArray[0, rank];
+	G[dim[x_v]] := dimension[type, rank, List @@ x];
+	G[prod[a_v, b_v]] /; G[minrep[a, b]] =!= a := G[prod[b, a]];
+	x:G[prod[a_v, b_v]] := x = v @@ # & /@ decompose @ productReps[irrep[type, rank, List @@ a], irrep[type, rank, List @@ b]];
+	G[dual[x_v]] := v @@ Join[{x[[1]]}, Table[x[[1]] - x[[i]], {i, rank, 2, -1}]];
+	G[isrep[_]] := False;
+	weightmat = Array[Join[ConstantArray[1, #], ConstantArray[0, rank - #]] &, rank];
+	weightinv = Inverse[weightmat];
+	G[isrep[x_v]] := AllTrue[(List @@ x).weightinv, IntegerQ[#] && # >= 0 &];
+	G[gG] = {};
+	G[gA] = Join[Table[G[x[i]], {i, rank}], Table[G[y[i]], {i, rank}]];
+	G[_][G[id]] := {{0}};
+	t:G[x[i_]][r_v] := (setRep[r]; t);
+	t:G[y[i_]][r_v] := (setRep[r]; t);
+	s:setRep[r_v] := s = Module[{temp},
+		temp = PrintTemporary["generating irrep ", r, "..."];
+		setRep[r, repMats[r]];
+		NotebookDelete[temp];
+	];
+	s:setRep[r_v, m_] := s = Do[G[x[i]][r] = m[[i]]; G[y[i]][r] = m[[i + rank]], {i, rank}];
+	G[minrep[a_v, b_v]] := Which[
+		Plus @@ a < Plus @@ b, a,
+		Plus @@ a > Plus @@ b, b,
+		True, Catch[Do[Which[a[[i]] > b[[i]], Throw[a], a[[i]] < b[[i]], Throw[b]], {i, rank}]; Throw[a]]];
+	G
+]
+
 getSU[4] := getSU[4] = AbortProtect @ Module[{G, e, high, tensor, rep, dimT, gen,
 		extend, extendLoop, basis, repMat, repMats, setRep, lowers = {4, 5, 6}},
 	high[1] = SparseArray @ {1, 0, 0, 0};
