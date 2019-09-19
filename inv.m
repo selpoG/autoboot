@@ -690,9 +690,9 @@ toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 		secsStr = StringRiffle[Flatten[Function[s, Array[Function[i, TemplateApply[secTemplate, <|"sec" -> secname[s, i], "p" -> (1 - s[[4]])/2, "sz" -> matsize[s, i]|>]], secs[s]]] /@ Keys[secs]], "\n\t"];
 		valsStr = StringRiffle[Array[TemplateApply["val[`i`] = `v`;", <|"i" -> # - 1, "v" -> ToCpp`cppeval @ vals[[#]]|>] &, Length[vals]], "\n\t"];
 		exts = DeleteDuplicates[#[[1]] & /@ keys[allopsForBoot]];
-		filename = StringRiffle[TemplateApply["deltas.at(\"`k`\").str(8)", <|"k" -> #|>] & /@ exts, " + \"-\" + "];
-		extdelta = StringRiffle[Array[TemplateApply["deltas[\"`k`\"] = R(args[`i`]);", <|"i" -> #, "k" -> exts[[#]]|>] &, Length[exts]], "\n\t"];
-		extops = StringRiffle[TemplateApply["ops.emplace(\"`k`\", Op(deltas.at(\"`k`\"), 0, c));", <|"k" -> #|>] & /@ exts, "\n\t"];
+		filename = StringRiffle[TemplateApply["deltas.at(\"`k`\").str('#')", <|"k" -> #|>] & /@ exts, " + \"-\" + "];
+		extdelta = StringRiffle[Array[TemplateApply["deltas[\"`k`\"] = parse(args[`i`]).value();", <|"i" -> #, "k" -> exts[[#]]|>] &, Length[exts]], "\n\t"];
+		extops = StringRiffle[TemplateApply["ops.emplace(\"`k`\", Op(real(deltas.at(\"`k`\")), 0, c));", <|"k" -> #|>] & /@ exts, "\n\t"];
 		scalarsecs = StringRiffle[Array[TemplateApply["secs.emplace_back(`sec`, `s`);", <|"sec" -> secname[scalar, #], "s" -> matsize[scalar, #]|>] &, scalarnum], "\n\t"];
 		regsym[e_, F] := (syms[[e]] = "Odd";);
 		regsym[e_, H] := (syms[[e]] = "Even";);
@@ -700,12 +700,12 @@ toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 		regsym[e_, Hp] := (syms[[e]] = "Even";);
 		(* diagonal *)
 		convert[0, block[1, 1, bl_]] := toCString[bl];
-		convert[0, block[-1, 1, bl_]] := TemplateApply["R(-1), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[0, block[-1, 1, bl_]] := TemplateApply["real(-1), `bl`", <|"bl" -> toCString[bl]|>];
 		convert[0, block[1, v_, bl_]] := TemplateApply["val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
 		convert[0, block[-1, v_, bl_]] := TemplateApply["-val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
 		(* off-diagonal *)
-		convert[1, block[1, 1, bl_]] := TemplateApply["R(2), `bl`", <|"bl" -> toCString[bl]|>];
-		convert[1, block[-1, 1, bl_]] := TemplateApply["R(-2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[1, 1, bl_]] := TemplateApply["real(2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[-1, 1, bl_]] := TemplateApply["real(-2), `bl`", <|"bl" -> toCString[bl]|>];
 		convert[1, block[1, v_, bl_]] := TemplateApply["2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
 		convert[1, block[-1, v_, bl_]] := TemplateApply["-2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
 		convert[s_, r_, r_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> r - 1, "block" -> convert[0, x]|>];
@@ -728,7 +728,8 @@ eqTemplate = "{
 
 secTemplate = "{
 		Sector s(`sec`, `sz`, ContinuousType);
-		for (const auto& spin: spins) if (spin % 2 == `p`) s.add_op(spin);
+		for (const auto& spin : spins)
+			if (spin % 2 == `p`) s.add_op(spin);
 		secs.push_back(s);
 	}"
 
