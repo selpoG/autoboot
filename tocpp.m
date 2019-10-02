@@ -40,6 +40,7 @@ createCpp[secs_, scalarsecs_, vals_, numval_, eqs_, numext_, extops_, extdelta_,
 (* eqs: "{\nEq eq(boot, Odd);\neq.add(\"scalar;0\", 0, 0, ops[\"s\"], ext(\"e\", \"s\", \"e\", \"s\"));\neq.add(\"odd+\", ext(\"e\", \"s\", \"e\", \"s\"));\neq.add(\"odd-\", ext(\"e\", \"s\", \"e\", \"s\"));\nboot.add_equation(eq);\n}..." *)
 
 template = "#include <array>
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -47,37 +48,33 @@ template = "#include <array>
 #include <utility>
 #include <vector>
 
-#include \"bootstrap_equation.hpp\"
-#include \"complex_function.hpp\"
-#include \"context.hpp\"
-#include \"matrix.hpp\"
-#include \"polynomial_program.hpp\"
-#include \"primary_op.hpp\"
-#include \"real.hpp\"
+#include \"qboot/qboot.hpp\"
 
-using algebra::Vector;
+namespace fs = qboot::fs;
+namespace mp = qboot::mp;
 using mp::real, mp::rational, mp::parse;
 using qboot::Context, qboot::PolynomialProgram, qboot::BootstrapEquation, qboot::Sector;
+using qboot::algebra::Vector;
 using std::array, std::map, std::set, std::move, std::vector, std::string, std::unique_ptr;
-namespace fs = qboot::fs;
 
 template <class T>
 using dict = map<string, T, std::less<>>;
 using Op = qboot::PrimaryOperator;
 using Eq = qboot::Equation;
 constexpr auto ContinuousType = qboot::SectorType::Continuous;
-constexpr auto Odd = algebra::FunctionSymmetry::Odd;
-constexpr auto Even = algebra::FunctionSymmetry::Even;
+constexpr auto Odd = qboot::algebra::FunctionSymmetry::Odd;
+constexpr auto Even = qboot::algebra::FunctionSymmetry::Even;
 
 static string name(const dict<rational>& deltas);
-static PolynomialProgram create(const Context& c, const dict<rational>& deltas, uint32_t numax, set<uint32_t> spins);
+static BootstrapEquation create(const Context& c, const dict<rational>& deltas, uint32_t numax,
+                                const set<uint32_t>& spins);
 
 string name(const dict<rational>& deltas)
 {
 	return string(\"sdp-\") + `filename`;
 }
 
-PolynomialProgram create(const Context& c, const dict<rational>& deltas, uint32_t numax, set<uint32_t> spins)
+BootstrapEquation create(const Context& c, const dict<rational>& deltas, uint32_t numax, const set<uint32_t>& spins)
 {
 	dict<Op> ops;
 	`extops`
@@ -117,9 +114,6 @@ PolynomialProgram create(const Context& c, const dict<rational>& deltas, uint32_
 	BootstrapEquation boot(c, secs, numax);
 	`eqs`
 	boot.finish();
-	// to maximize (resp. minimize) OPE in \"hoge\" sector,
-	// call boot.ope_maximize(\"hoge\", \"unit\") (resp. ope_minimize)
-	return boot.find_contradiction(\"unit\");
 }
 
 int main(int argc, char* argv[])
@@ -131,7 +125,8 @@ int main(int argc, char* argv[])
 	// lambda: controls the number of derivatives (z = x + sqrt(y), (der x) ^ m (der y) ^ n for m + 2 n <= lambda)
 	// dim: the dimension of the physical space
 	// numax: controls the number of poles picked in the gBlock (numax + min(spin, numax) / 2)
-	constexpr uint32_t n_Max = 400, lambda = 14, dim = 3, numax = 6;
+	// parallel: the number of internal threads
+	constexpr uint32_t n_Max = 400, lambda = 14, dim = 3, numax = 6, parallel = 8;
 	// spins: spins for the continuous sectors
 	set<uint32_t> spins;
 	for (uint32_t s = 0; s < 27; ++s) spins.insert(s);
@@ -142,10 +137,13 @@ int main(int argc, char* argv[])
 	// external scalars
 	`extdelta`
 	args.release();
-	Context c(n_Max, lambda, dim);
-	auto prob = create(c, deltas, numax, spins);
+	Context c(n_Max, lambda, dim, parallel);
+	auto boot = create(c, deltas, numax, spins);
+	// to maximize (resp. minimize) OPE in \"hoge\" sector,
+	// call boot.ope_maximize(\"hoge\", \"unit\", parallel) (resp. ope_minimize)
+	auto prob = boot.find_contradiction(\"unit\", parallel);
 	auto dir = fs::current_path() / name(deltas);
-	move(prob).create_input().write(dir);
+	move(prob).create_input(parallel).write(dir, parallel);
 	return 0;
 }
 "
