@@ -114,6 +114,7 @@ BootstrapEquation create(const Context& c, const dict<rational>& deltas, uint32_
 	BootstrapEquation boot(c, secs, numax);
 	`eqs`
 	boot.finish();
+	return boot;
 }
 
 int main(int argc, char* argv[])
