@@ -685,8 +685,8 @@ toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 		Do[matsize[scalar, i] = Length @ mat[scalar, i][[1]], {i, scalarnum}];
 		Do[matsize[s, i] = Length @ mat[s, i][[1]], {s, Keys[secs]}, {i, secs[s]}];
 		secname[unit] = secname[unit, 1] = "\"unit\"";
-		secname[scalar, id_] := TemplateApply["\"(scalar, `n`)\"", <|"n" -> id - 1|>];
-		secname[op[op, r_, 1, p_], id_] := TemplateApply["\"(`r`, `p`, `n`)\"", <|"r" -> r, "p" -> (1 - p)/2, "n" -> id - 1|>];
+		secname[scalar, id_] := If[scalarnum > 1, TemplateApply["\"(scalar, `n`)\"", <|"n" -> id - 1|>], "\"scalar\""];
+		secname[op[op, r_, 1, p_], id_] := TemplateApply["\"(`r`, `p``n`)\"", <|"r" -> r, "p" -> If[p > 0, "even", "odd"], "n" -> If[secs[op[op, r, 1, p]] > 1, ", " <> ToString[id - 1], ""]|>];
 		secsStr = StringRiffle[Flatten[Function[s, Array[Function[i, TemplateApply[secTemplate, <|"sec" -> secname[s, i], "p" -> (1 - s[[4]])/2, "sz" -> matsize[s, i]|>]], secs[s]]] /@ Keys[secs]], "\n\t"];
 		valsStr = StringRiffle[Array[TemplateApply["val[`i`] = `v`;", <|"i" -> # - 1, "v" -> ToCpp`cppeval @ vals[[#]]|>] &, Length[vals]], "\n\t"];
 		exts = DeleteDuplicates[#[[1]] & /@ keys[allopsForBoot]];
