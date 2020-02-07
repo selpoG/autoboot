@@ -1,7 +1,7 @@
 BeginPackage["ToPython`"]
 
 pyeval::usage = "pyeval[x]"
-createPython::usage = "createPython[secs,scalarnum,vals,rmats,smats,umats,filename]"
+createPython::usage = "createPython[secs,scalarnum,vals,rmats,smats,umats,filename,opinfo]"
 
 Begin["`Private`"]
 
@@ -48,10 +48,10 @@ pyeval[Log[a_]] := TemplateApply["log(``)", pyeval[a]]
 pyeval[Log[b_, a_]] := TemplateApply["log(``, ``)", {pyeval[a], pyeval[b]}]
 pyeval[I] = "I";
 pyeval[x_?ExactNumberQ] := TemplateApply["context(\"``\")", ToString @ FortranForm @ N[x, 300]]
-pyeval[x_?NumberQ] := TemplateApply["context(\"``\")", ToString @ FortranForm[x]]
+pyeval[x_?NumberQ] := Module[{r = Rationalize[x, 0]}, If[Abs[Denominator[r]] + Abs[Numerator[r]] < 10000, pyeval[r], TemplateApply["context(\"``\")", ToString @ FortranForm[x]]]]
 
-createPython[secs_, scalarnum_, vals_, rmats_, smats_, umats_, filename_] :=
-	TemplateApply[template, <|"secs"->secs, "scalarnum"->scalarnum, "vals"->vals, "rmats"->rmats, "smats"->smats, "umats"->umats, "filename"->filename|>]
+createPython[secs_, scalarnum_, vals_, rmats_, smats_, umats_, filename_, opinfo_] :=
+	TemplateApply[template, <|"secs"->secs, "scalarnum"->scalarnum, "vals"->vals, "rmats"->rmats, "smats"->smats, "umats"->umats, "filename"->filename, "opinfo"->opinfo|>]
 
 template = "# -*- coding: utf-8 -*-
 from __future__ import print_function
@@ -66,6 +66,7 @@ from sage.all import pi, e, euler_gamma, catalan, khinchin, glaisher, sin, cos, 
 context = cb.context_for_scalar(epsilon=0.5, Lambda=15, Prec=800)
 spins = list(range(27)) + [49, 50]
 nu_max = 14
+`opinfo`
 # {(r, s): d, ...} means operators in irrep r and spin s must have Delta >= d.
 mygap = {}
 def gaps(deltas):
