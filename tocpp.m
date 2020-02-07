@@ -25,7 +25,7 @@ cppeval[Log[b_, a_]] := cppeval[Log[a] / Log[b]]
 cppeval[Pi] = "mp::const_pi()";
 cppeval[E] = cppeval[Exp[1]];
 cppeval[x_?ExactNumberQ] := TemplateApply["real(\"``\")", ToString @ FortranForm @ N[x, 400]]
-cppeval[x_?NumberQ] := TemplateApply["real(\"``\")", ToString @ FortranForm[x]]
+cppeval[x_?NumberQ] := Module[{r = Rationalize[x, 0]}, If[Abs[Denominator[r]] + Abs[Numerator[r]] < 10000, cppeval[r], TemplateApply["real(\"``\")", ToString @ FortranForm[x]]]]
 
 createCpp[secs_, scalarsecs_, vals_, numval_, eqs_, numext_, extops_, extdelta_, filename_] :=
 	TemplateApply[template, <|"secs"->secs, "scalarsecs"->scalarsecs, "vals"->vals, "numval"->numval, "eqs"->eqs, "numext"->numext, "extops"->extops, "extdelta"->extdelta, "filename"->filename|>]
@@ -141,8 +141,9 @@ int main(int argc, char* argv[])
 	Context c(n_Max, lambda, dim, parallel);
 	auto boot = create(c, deltas, numax, spins);
 	// to maximize (resp. minimize) OPE in \"hoge\" sector,
-	// call boot.ope_maximize(\"hoge\", \"unit\", parallel) (resp. ope_minimize)
-	auto prob = boot.find_contradiction(\"unit\", parallel);
+	// replace the first argument from qboot::FindContradiction(...)
+	// to qboot::ExtremalOPE(true (resp. false), \"hoge\", \"unit\")
+	auto prob = boot.convert(qboot::FindContradiction(\"unit\"), parallel);
 	auto dir = fs::current_path() / name(deltas);
 	move(prob).create_input(parallel).write(dir, parallel);
 	return 0;
