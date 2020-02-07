@@ -673,7 +673,9 @@ makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scaln
 	]
 
 betaToString[1] = 1
-betaToString[\[Beta][a_, b_, c_][n_]] := TemplateApply["beta[`a`, `b`, `c`][`n`]", <|"a"->ToString@a[[1]], "b"->ToString@b[[1]], "c"->ToString@c[[1]], "n"->ToString[n]|>]
+betaToString[op[x_, r_, p : 1 | -1, 1 | -1]] /; !isComplex[r] := TemplateApply["`sg``x`", <|"sg"->If[p > 0, "", "~"], "x"->ToString@x|>]
+betaToString[op[x_, r_?isComplex, 1, 1 | -1]] := TemplateApply["`sg``x`", <|"sg"->If[r === minrep[r, dual[r]], "", "~"], "x"->ToString@x|>]
+betaToString[\[Beta][a_, b_, c_][n_]] := TemplateApply["beta[`a`, `b`, `c`][`n`]", <|"a"->betaToString@a, "b"->betaToString@b, "c"->betaToString@c, "n"->ToString[n]|>]
 toCString[F[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
 toCString[H[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
 toCString[Fp[x_, y_, z_, w_, 0]] := TemplateApply["one, ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
@@ -692,7 +694,7 @@ toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 		secname[op[op, r_, 1, p_], id_] := TemplateApply["\"(`r`, `p``n`)\"", <|"r" -> r, "p" -> If[p > 0, "even", "odd"], "n" -> If[secs[op[op, r, 1, p]] > 1, ", " <> ToString[id - 1], ""]|>];
 		secsStr = StringRiffle[Flatten[Function[s, Array[Function[i, TemplateApply[secTemplate, <|"sec" -> secname[s, i], "p" -> (1 - s[[4]])/2, "sz" -> matsize[s, i], "opes" -> StringRiffle[betaToString /@ mat[s, i][[1]], ", "]|>]], secs[s]]] /@ Keys[secs]], "\n\t"];
 		valsStr = StringRiffle[Array[TemplateApply["val[`i`] = `v`;", <|"i" -> # - 1, "v" -> ToCpp`cppeval @ vals[[#]]|>] &, Length[vals]], "\n\t"];
-		exts = DeleteDuplicatesBy[keys[allopsForBoot], {#[[1]], #[[2]]} &];
+		exts = DeleteDuplicatesBy[Select[keys[allopsForBoot], #[[2]] === minrep[#[[2]], dual[#[[2]]]] && #[[3]] > 0 &], {#[[1]], #[[2]]} &];
 		filename = StringRiffle[TemplateApply["deltas.at(\"`k`\").str('#')", <|"k" -> #[[1]]|>] & /@ exts, " + \"-\" + "];
 		extdelta = StringRiffle[Array[TemplateApply["deltas[\"`k`\"] = parse(args[`i`]).value();", <|"i" -> #, "k" -> exts[[#, 1]]|>] &, Length[exts]], "\n\t"];
 		extops = StringRiffle[TemplateApply["ops.emplace(\"`k`\", Op(real(deltas.at(\"`k`\")), 0, c));  // `r`", <|"k" -> #[[1]], "r" -> #[[2]]|>] & /@ exts, "\n\t"];
