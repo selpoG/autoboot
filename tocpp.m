@@ -127,7 +127,8 @@ int main(int argc, char* argv[])
 	// dim: the dimension of the physical space
 	// numax: controls the number of poles picked in the gBlock (numax + min(spin, numax) / 2)
 	// parallel: the number of internal threads
-	constexpr uint32_t n_Max = 400, lambda = 14, dim = 3, numax = 6, parallel = 8;
+	constexpr uint32_t n_Max = 400, lambda = 14, numax = 6, parallel = 8;
+	const rational dim(\"3\");
 	// spins: spins for the continuous sectors
 	set<uint32_t> spins;
 	for (uint32_t s = 0; s < 27; ++s) spins.insert(s);
