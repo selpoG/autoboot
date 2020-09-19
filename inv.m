@@ -717,7 +717,7 @@ toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
 		convert[s_, r_, c_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> c - 1, "block" -> convert[1, x]|>];
 		f[s_, n_, e_, r_, c_, 0] := None;
 		f[s_, n_, e_, r_, c_, x_Plus] := Scan[f[s, n, e, r, c, #] &, List @@ x];
-		f[s_, n_, e_, r_, c_, x_] := (regsym[e, x[[3, 0]]]; AppendTo[terms[[e]], convert[secname[s, n], r, c, x]]);
+		f[s_, n_, e_, r_, c_, x_] := (regsym[e, x[[3, 0]]]; If[r <= c, AppendTo[terms[[e]], convert[secname[s, n], r, c, x]]]);
 		Do[f[unit, 1, e, 1, 1, mat[unit, 1][[2, e, 1, 1]]], {e, numeq}];
 		Do[f[scalar, n, e, r, c, mat[scalar, n][[2, e, r, c]]], {n, scalarnum}, {e, numeq}, {r, matsize[scalar, n]}, {c, matsize[scalar, n]}];
 		Do[f[s, n, e, r, c, mat[s, n][[2, e, r, c]]], {s, Keys[secs]}, {n, secs[s]}, {e, numeq}, {r, matsize[s, n]}, {c, matsize[s, n]}];
