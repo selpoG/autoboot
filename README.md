@@ -8,6 +8,11 @@ or [An Automated Generation of Bootstrap Equations for Numerical Study of Critic
 
 Some usages also can be checked by typing `?someSymbolName` (for example, `?getGroup`) in [Mathematica](http://reference.wolfram.com/language/tutorial/GettingInformationAboutWolframLanguageObjects.html).
 ``?somePackageName`*`` (for example, ``?ClebschGordan`*``) will give package-lebel information.
+These usages are also documented in [inv.md](doc/inv.md), [group.md](doc/group.md).
+
+- [Setup](#setup)
+- [Usage](#usage)
+- [Example](#example)
 
 ## Setup
 

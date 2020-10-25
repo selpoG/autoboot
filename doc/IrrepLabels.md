@@ -1,5 +1,17 @@
 # Labels for Irreps
 
+- [`G=group[g,i]`](#ggroupgi)
+- [`G=so[2]`](#gso2)
+- [`G=o[2]`](#go2)
+- [`G=so[3]`](#gso3)
+- [`G=o[3]`](#go3)
+- [`G=su[2]`](#gsu2)
+- [`G=su[4]`](#gsu4)
+- [`G=dih[N]` (`N`: even)](#gdihn-n-even)
+- [`G=dih[N]` (`N`: odd)](#gdihn-n-odd)
+- [`G=dic[N]`](#gdicn)
+- [`G=pGroup[G1,G2]`](#gpgroupg1g2)
+
 All labels of irreps are defined as follows:
 
 ## `G=group[g,i]`

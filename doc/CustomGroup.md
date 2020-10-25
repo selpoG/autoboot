@@ -6,6 +6,14 @@ You also attach labels of irrep-objects for all (unique) irreps.
 [`getO[3]`](https://github.com/selpoG/autoboot/tree/master/grouplie.m) is
 a good example for creating custom group-objects.
 
+- [`isrep`](#isrep)
+- [`minrep`](#minrep)
+- [`dim`](#dim)
+- [`dual`](#dual)
+- [`id`](#id)
+- [`prod`](#prod)
+- [`gG` and `gA`](#gg-and-ga)
+
 ## `isrep`
 
 `g[isrep[r]]` must give `True` or `False` (`True` if and only if `r` is a valid irrep-object for `g`).
