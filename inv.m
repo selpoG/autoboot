@@ -65,7 +65,7 @@ bootAll[] generates bootstrap equation from all four-point functions of fundamen
 
 (* fundamental scalars are used to seperate sum of conformal blocks over scalars to single[...] and sum[...]. *)
 setOps::usage = "setOps[ops] registers ops and duals of ops as fundamental scalars."
-one::usage = "one represents unit operator. This is implicitly registered as a fundamental scalar."
+one::usage = "one represents the unit operator. This is implicitly registered as a fundamental scalar."
 
 (* extract is a projection. x==extract[x,unit]+extract[x,scalar]+\[Sum]_{r,p}extract[x,op[op,r,1,p]] and extract[x,sec]==extract[extract[x,sec]]. *)
 extract::usage = "extract[x,op[op,r,1,p]] extracts terms of the form sum[...,op[op,r,1,p]] from x.
@@ -73,7 +73,7 @@ extract[x,scalar] extracts terms of the form single[(Fp or Hp)*\[Beta]^2] from x
 extract[x,unit] extracts terms of the form single[Fp or Hp] from x (contribution of unit operator)."
 unit::usage = "unit is a option for extract and means contribution of unit operator."
 scalar::usage = "scalar is a option for extract and means contribution of fundamental scalars but unit operator."
-sector::usage = "sector[eq] gives a list of all nontrivial option sec for extract applied to eq, i.e. {sec | extract[eq,sec]!=0}. "
+sector::usage = "sector[eq] gives a list of all nontrivial option sec for extract applied to eq, i.e. {sec | extract[eq,sec]!=0}."
 
 makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertices are OPE coefficients \[Beta] in extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
