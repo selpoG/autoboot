@@ -1,6 +1,7 @@
 (* Do not import this package directly. *)
 Needs["CommonFunctions`", "common.m"]
 Needs["ToPython`", "topy.m"]
+Needs["ToCpp`", "tocpp.m"]
 NClebschGordan`clearCG[];
 
 BeginPackage["NClebschGordan`"]
@@ -64,7 +65,7 @@ bootAll[] generates bootstrap equation from all four-point functions of fundamen
 
 (* fundamental scalars are used to seperate sum of conformal blocks over scalars to single[...] and sum[...]. *)
 setOps::usage = "setOps[ops] registers ops and duals of ops as fundamental scalars."
-one::usage = "one represents unit operator. This is implicitly registered as a fundamental scalar."
+one::usage = "one represents the unit operator. This is implicitly registered as a fundamental scalar."
 
 (* extract is a projection. x==extract[x,unit]+extract[x,scalar]+\[Sum]_{r,p}extract[x,op[op,r,1,p]] and extract[x,sec]==extract[extract[x,sec]]. *)
 extract::usage = "extract[x,op[op,r,1,p]] extracts terms of the form sum[...,op[op,r,1,p]] from x.
@@ -72,23 +73,25 @@ extract[x,scalar] extracts terms of the form single[(Fp or Hp)*\[Beta]^2] from x
 extract[x,unit] extracts terms of the form single[Fp or Hp] from x (contribution of unit operator)."
 unit::usage = "unit is a option for extract and means contribution of unit operator."
 scalar::usage = "scalar is a option for extract and means contribution of fundamental scalars but unit operator."
-sector::usage = "sector[eq] gives a list of all nontrivial option sec for extract applied to eq, i.e. {sec | extract[eq,sec]!=0}. "
+sector::usage = "sector[eq] gives a list of all nontrivial option sec for extract applied to eq, i.e. {sec | extract[eq,sec]!=0}."
 
 makeG::usage = "makeG[eqn[sec,{a,b,...}]] gives an undirected graph whose vertices are OPE coefficients \[Beta] in extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeMat::usage = "makeMat[eqn[sec,{a,b,...}]] gives a matrix-representation of extracted bootstrap equation eqn[sec,{a,b,...}]."
 makeSDP::usage = "makeSDP[eqn[{a,b,...}]] converts whole bootstrap equation eqn[{a,b,...}] into sdp-object."
 sdpobj::usage = "sdpobj[secs,scalarnum,vals,mats] is a sdp-object. secs is section data of bootstrap equation. scalarnum is the number of connected components in scalar sections. vals are real constants in bootstrap equation. mats are matrix-representation of bootstrap equation."
+toQboot::usage = "toQboot[sdp] converts sdp-object into c++ code for qboot."
 toCboot::usage = "toCboot[sdp] converts sdp-object into python code for cboot."
 toTeX::usage = "toTeX[eq] gives latex string of eq (you need call Print[toTeX[eq]] to paste to your tex file).
 toTeX[eqn[{a,b,...}]] gives latex string of eq with align environment (you need call Print[toTeX[eq]] to paste to your tex file)."
 repToTeX::usage = "repToTeX[r] is needed to transrate irrep-object r as latex string. Please set appropriate value."
-opToTeX::usage = "opToTeX[o] is needed to transrate operator object o as latex string. Please set appropriate value."
+opToTeX::usage = "opToTeX[o] is needed to transrate operator name o as latex string. Please set appropriate value."
 
 Begin["`Private`"]
 
 setOPE::usage = "setOPE[r,s,t] calculates all values of ope[r,s,t].
 setOPE[r,s] calls setOPE[r,s,t] for all t in prod[r,s]."
 setAllOPE::usage = "setAllOPE[reps] calls setOPE[r,s] and setOPE[t,dual[t],id] for all r,s in reps and t in prod[r,s]."
+opToTeX2::usage = "opToTeX2[op[...]] is needed to transrate operator object op[...] as latex string."
 precision::usage = "precision represents internal precision for calculation."
 
 allPublicSymbol = {clearCG, inv, ope, cor,
@@ -135,6 +138,7 @@ x:inv[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{s}, Association @ Table[
 x:invs[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{t = inv[r1, r2, r3, r4], s, n, m},
 	MyReap @ Do[Sow[{s, n, m}], {s, Keys[t]}, {n, t[s][[1]]}, {m, t[s][[2]]}]]]
 
+(* eq[r,s,t] gives equations which Clebsch-Gordan coefficients {a,b/r,s|c/t} must satisfy. *)
 eq[r_, s_, t_] /; inv[{r, s}, {t}] > 0 :=
 Module[{a, b, c, x, y, z, X, g, e, d1 = dim[r], d2 = dim[s], d3 = dim[t], d},
 	d = d1 d2 d3;
@@ -164,7 +168,7 @@ Module[{sol, a, b, c, d = dim[r], d3 = dim[t], l, n, sym, tmp, v, p, even, odd},
 	l = Length[sol = NullSpace @ num @ eq[r, r, t]];
 	If[l == 0, Message[setOPE::imcmpt, r, r, t]; Return[]];
 	If[l != inv[{r, r}, {t}], Message[setOPE::diff, r, r, t, l, inv[{r, r}, {t}]]; Return[]];
-	even = Select[num @ Orthogonalize[num @ sym[#, +1] & /@ sol, Conjugate[#1].#2 &], AnyTrue[#, # != 0 &] &];
+	even = Select[num @ Orthogonalize[num @ sym[#,  1] & /@ sol, Conjugate[#1].#2 &], AnyTrue[#, # != 0 &] &];
 	odd  = Select[num @ Orthogonalize[num @ sym[#, -1] & /@ sol, Conjugate[#1].#2 &], AnyTrue[#, # != 0 &] &];
 	l = Length[even];
 	myAbortProtect[
@@ -220,9 +224,14 @@ x:cor[r1_, r2_, r3_, r4_][s_, n_, m_][a1_, a2_, a3_, a4_] /;
 	1 <= n <= inv[{r1, r2}, {s}] && 1 <= m <= inv[r3, r4, s] := (setCor[r1, r2, r3, r4, s]; x)
 cor[_, _, _, _][_, _, _][_, _, _, _] := 0
 
+(* decompose invariant tensor f into linear combination of cor[r,s,t][n]. *)
 dec[r_, s_, t_][f_] := Module[{vec},
 	decPrep[r, s, t]; vec = Array[{f @@ bas[r, s, t][#]} &, inv[r, s, t]]; num @ Flatten[invmat[r, s, t].vec]]
 
+(* decPrep[r,s,t] prepares bas[r,s,t][n] and invmat for dec.
+dec could be done by just taking inner-product, but most of cor[r,s,t][n][a,b,c] are zero, we need decPrep for more efficiency.
+bas[r,s,t] are sufficient components to distinguish invariant tensors.
+mat is a matrix whose components are values of cor[r,s,t][n] evaluated at bas[r,s,t], and invmat is its inverse. *)
 x:decPrep[r_, s_, t_] /; inv[r, s, t] > 0 := x =
 Module[{n, f = cor[r, s, t], max = inv[r, s, t], mat, rev, new, old, sc, a, b, c, tmp, tmp2, res},
 	Do[If[f[1][a, b, c] != 0, res[1] = {a, b, c}; mat = {{num @ f[1][a, b, c]}}; rev = Inverse[mat]; Break[]]
@@ -312,8 +321,8 @@ x:\[Tau][r_, s_, t_][n_, m_] /; 1 <= n <= inv[r, s, t] && 1 <= m <= inv[r, s, t]
 
 x:setOmega[r_, s_, t_] := x = Module[{n, m, l = inv[r, s, t], v, f, res},
 	Do[
-		f[a_, b_, c_] :=
-			num @ Sum[ope[dual[r]][a2, a] ope[dual[s]][b2, b] ope[dual[t]][c2, c] Conjugate[cor[dual[r], dual[s], dual[t]][m][a2, b2, c2]]
+		f[a_, b_, c_] := num @
+			Sum[ope[dual[r]][a2, a] ope[dual[s]][b2, b] ope[dual[t]][c2, c] Conjugate[cor[dual[r], dual[s], dual[t]][m][a2, b2, c2]]
 			, {a2, dim[r]}, {b2, dim[s]}, {c2, dim[t]}];
 		v = dec[r, s, t][f];
 		Do[res[n, m] = v[[n]], {n, l}]
@@ -358,10 +367,10 @@ reim[True] = True
 eqList[x_ == y_] := {x == y}
 eqList[True] = {}
 eqList[a_And] := List @@ a
-sum[a_?NumericQ b_, x_op] := a sum[b, x]
+sum[Times[a_?NumericQ, b_], x_op] := a sum[b, x]
 sum[a_Plus, x_op] := Plus @@ (sum[#, x] &) /@ List @@ a
 sum[0, x_op] := 0
-single[a_?NumericQ b_] := a single[b]
+single[Times[a_?NumericQ, b_]] := a single[b]
 single[a_Plus] := Plus @@ single /@ List @@ a
 single[0] = 0
 
@@ -386,7 +395,7 @@ setOPE[o1 : op[_, _, 1 | -1, 1], o2 : op[_, _, 1 | -1, 1], o3 : op[_, _, -1, 1 |
 setOPE[o1 : op[_, _, -1, 1], o2 : op[_, _, 1 | -1, 1], o3 : op[_, t_, 1, 1 | -1]] /; ! isPseaudo[t] := setOPE[dualOp[o1], dualOp[o2], dualOp[o3]]
 setOPE[o1 : op[_, r_, 1, 1], o2 : op[_, _, -1, 1], o3 : op[_, t_, 1, 1 | -1]] /; ! isPseaudo[t] && ! isPseaudo[r] := setOPE[dualOp[o1], dualOp[o2], dualOp[o3]]
 setOPE[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | -1, 1 | -1]] :=
-	Module[{re, im, a, b, c, d, e, v, cnt, d1 = dualOp[o1], d2 = dualOp[o2], d3 = dualOp[o3], n, N = inv[r, s, t], sol, add, eq, ev0, res},
+	Module[{re, im, a, b, c, d, cnt, n, N = inv[r, s, t], sol, add, eq, ev0, res},
 		add[x_] := Sow[Join[Array[D[x, re[#]] &, N], Array[D[x, im[#]] &, N]]];
 		a = Array[L[L[o1, o2, o3, #], re[#] + I im[#]] &, N];
 		b = flip12[a];
@@ -404,7 +413,7 @@ setOPE[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | 
 		Scan[ev0, Keys[cnt]];
 		myAbortProtect @ Scan[ev, Keys[cnt]]]
 setOPES[o1 : op[_, r_, 1 | -1, 1], o2 : op[_, s_, 1 | -1, 1], o3 : op[_, t_, 1 | -1, 1]] :=
-	Module[{re, im, eq, a123, b123, e, v, cnt, x, N = inv[r, s, t], a213, a132, a231, a312, a321, b213, b132, b231, b312, b321, sol, add, n, ev0, res},
+	Module[{re, im, eq, a123, b123, cnt, x, N = inv[r, s, t], a213, a132, a231, a312, a321, b213, b132, b231, b312, b321, sol, add, n, ev0, res},
 		add[x_] := Sow[Join[Array[D[x, re[#]] &, N], Array[D[x, im[#]] &, N]]];
 		a123 = Array[L[L[o1, o2, o3, #], re[#] + I im[#]] &, N];
 		a312 = rotate[a123];
@@ -469,7 +478,7 @@ reduceBoot[True] = {};
 reduceBoot[x_ == y_] := {Expand[x - y]}
 reduceBoot[eq_And] := Module[{add, bls = <||>, ks, scan, scan2, mat = <||>, row, n, b, min = Infinity, max = 0},
 	scan[x_, n_] := scan2[#, n]& /@ x;
-	scan2[x_?NumericQ y_, n_] := (add[y]; mat[n][bls[y]] = x);
+	scan2[Times[x_?NumericQ, y_], n_] := (add[y]; mat[n][bls[y]] = x);
 	add[x:(_sum|_single)] := If[!KeyExistsQ[bls, x], bls[x] = 1 + Length[bls]];
 	Do[mat[n] = <||>; scan[Expand[eq[[n, 1]] - eq[[n, 2]]], n], {n, Length[eq]}];
 	mat = Table[If[KeyExistsQ[mat[n], b], mat[n][b], 0], {n, Length[eq]}, {b, Length[bls]}];
@@ -497,7 +506,7 @@ sign[1, x_] := SuperPlus[x]
 sign[-1, x_] := SuperMinus[x]
 
 extract2[a_Plus, o_] := extract2[#, o] & /@ a
-extract2[x_?NumericQ y_, o_] := x extract2[y, o]
+extract2[Times[x_?NumericQ, y_], o_] := x extract2[y, o]
 extract2[sum[x_, o_op], o_] := sum[x, o]
 extract2[sum[_, _op], _] := 0
 extract2[x_single, unit | scalar] := x
@@ -521,7 +530,7 @@ prodOp[r_, op[_, s_, 1 | -1, 1]] := Keys @ prod[r, s]
 
 tmpsec = newSet[]
 tmpf[a_ + b_] := (tmpf[a]; tmpf[b];)
-tmpf[a_?NumericQ b_] := (tmpf[b];)
+tmpf[Times[a_?NumericQ, b_]] := (tmpf[b];)
 tmpf[sum[x_, o_op]] := add[tmpsec, o]
 sector[eqn[eq_List]] := Module[{pr},
 	clear[tmpsec];
@@ -552,7 +561,7 @@ Fp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Fp[c, d, a,
 Hp[a_, b_, c_, d_, o_] /; lexComp[{c, d, a, b}, {a, b, c, d}] < 0 := Hp[c, d, a, b, o]
 addOp[o : op[x_, r_, 1 | -1, 1]] := myAbortProtect[allops[o] = 1; add[allopsForBoot, o];
 	If[!KeyExistsQ[allreps, r], allreps[r] = <|o->1|>, allreps[r][o] = 1];
-	op[x] = op[x, r];
+	If[Length[op[x]] == 1, op[x] = op[x, r]];
 	If[!KeyExistsQ[ord, x], ord[x] = Length[ord]];]
 setOps[ops_List] := myAbortProtect[allops = <|one->1|>; allreps = <|id-><|one->1|>|>; ord = <||>; allopsForBoot = newSet[]; Scan[(addOp[#]; addOp[dualOp[#]]) &, ops]]
 
@@ -565,6 +574,9 @@ FtoTeX[x_] := (Print["Unknown pattern at FtoTeX:", x]; ToString[x])
 termToTeX[x_] := (Print["Unknown pattern at termToTeX:", x]; ToString[x])
 
 opToTeX[op] := "\\op{O}"
+
+opToTeX2[op[x_, r_, p : 1 | -1, 1 | -1]] /; !isComplex[r] := TemplateApply[If[p > 0, "``", "\\overline{``}"], opToTeX[x]]
+opToTeX2[op[x_, r_?isComplex, 1, 1 | -1]] := TemplateApply[If[r === minrep[r, dual[r]], "``", "\\overline{``}"], opToTeX[x]]
 
 FtoTeX[F[a_, b_, c_, d_]] :=
 	TemplateApply[
@@ -595,11 +607,11 @@ FtoTeX[Hp[a_, b_, c_, d_, 0]] :=
 \[Beta]toTeX[\[Beta][a_, b_, c_][n_]] :=
 	TemplateApply[
 		"\\lambda_{`o1` `o2` `o3`}^{(`n`)}",
-		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]], "n" -> numToTeX[n]|>]
+		<|"o1" -> opToTeX2[a], "o2" -> opToTeX2[b], "o3" -> opToTeX2[c], "n" -> numToTeX[n]|>]
 \[Beta]toTeX[\[Beta][a_, b_, c_][1]] :=
 	TemplateApply[
 		"\\lambda_{`o1` `o2` `o3`}",
-		<|"o1" -> opToTeX[a[[1]]], "o2" -> opToTeX[b[[1]]], "o3" -> opToTeX[c[[1]]]|>]
+		<|"o1" -> opToTeX2[a], "o2" -> opToTeX2[b], "o3" -> opToTeX2[c]|>]
 
 \[Beta]FtoTeX[(x : \[Beta][__][_]) (y : \[Beta][__][_]) (z_F | z_H | z_Fp | z_Hp)] :=
 	TemplateApply[
@@ -619,10 +631,10 @@ numToTeX[x_] /; NumericQ[x] && Element[x, Algebraics] :=
 		Which[
 			r[[0]] === Rational,
 				n = Numerator[r]; d = Denominator[r];
-				TemplateApply["\\frac{`x``s`}{`y`}", <|"x" -> If[n == 1, "", " "<>numToTeX[n]], "y" -> numToTeX[d], "s" -> s|>]
+				TemplateApply["\\frac{`x``s`}{`y`}", <|"x" -> If[n == 1, "", " " <> numToTeX[n]], "y" -> numToTeX[d], "s" -> s|>]
 			, r != 1,
 				TemplateApply["`x` `s`", <|"x" -> numToTeX[r], "s" -> s|>]
-			, _,
+			, True,
 				s]]
 
 termToTeX[one_, sum[x_, op[op, rp_, 1, l_]]] /; num[Abs[one - 1]] < epsilon :=
@@ -658,11 +670,11 @@ toTeX[eqn[eq_List]] :=
 connectedComponents[eqn[_, z_]] :=
 	Module[{f, uf = newUF[]},
 		f[a_Plus] := Scan[f, a];
-		f[x_?NumericQ y_] := f[y];
-		f[sum[(_F | _H) a_ b_, _]] := unite[uf, a, b];
-		f[sum[(_F | _H) a_^2, _]] := add[uf, a];
-		f[single[(_Fp | _Hp) a_ b_]] := unite[uf, a, b];
-		f[single[(_Fp | _Hp) a_^2]] := add[uf, a];
+		f[Times[x_?NumericQ, y_]] := f[y];
+		f[sum[Times[_F | _H, a_, b_], _]] := unite[uf, a, b];
+		f[sum[Times[_F | _H, a_^2], _]] := add[uf, a];
+		f[single[Times[_Fp | _Hp, a_, b_]]] := unite[uf, a, b];
+		f[single[Times[_Fp | _Hp, a_^2]]] := add[uf, a];
 		Scan[f, z];
 		classify[uf]]
 
@@ -672,35 +684,103 @@ makeMatHelper[z_, con_] :=
 		ind[_] := 0;
 		mat = Array[0&, {size, size}];
 		f[a_Plus] := Scan[f, a];
-		f[x_?NumericQ y_] := f[x, y];
+		f[Times[x_?NumericQ, y_]] := f[x, y];
 		f[x : _sum | _single] := f[1, x];
 		add[_, _, ___, 0, ___] := Null;
 		add[c_, x_, n_, m_] := (mat[[n, m]] += c x / 2; mat[[m, n]] += c x / 2;);
 		add[c_, x_, n_] := (mat[[n, n]] += c x;);
-		f[c_, sum[(x:_F | _H) a_ b_, _]] := add[c, x, ind[a], ind[b]];
-		f[c_, sum[(x:_F | _H) a_^2, _]] := add[c, x, ind[a]];
-		f[c_, single[(x:_Fp | _Hp) a_ b_]] := add[c, x, ind[a], ind[b]];
-		f[c_, single[(x:_Fp | _Hp) a_^2]] := add[c, x, ind[a]];
+		f[c_, sum[Times[x:_F | _H, a_, b_], _]] := add[c, x, ind[a], ind[b]];
+		f[c_, sum[Times[x:_F | _H, a_^2], _]] := add[c, x, ind[a]];
+		f[c_, single[Times[x:_Fp | _Hp, a_, b_]]] := add[c, x, ind[a], ind[b]];
+		f[c_, single[Times[x:_Fp | _Hp, a_^2]]] := add[c, x, ind[a]];
 		f[z];
-		mat
+		N[mat, precision - 30]
 	]
 
 makeMat[z:eqn[_, eq_List]] := Module[{con = connectedComponents[z], c},
-	If[Length[con] == 0, {{{# /. single[x_] :> x}} & /@ eq}, Table[makeMatHelper[#, c]& /@ eq, {c, con}]]]
+	If[Length[con] == 0, {{{1}, {{# /. single[x_] :> x}} & /@ eq}}, Table[{c, makeMatHelper[#, c]& /@ eq}, {c, con}]]]
 
-makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scalnum, val = newSet[], f, s, i},
+makeSDP[z:eqn[eq_List]] := Module[{mat, tmp, sec = sector[z], secs = <||>, scalnum, val = newSet[], f, s, i, add2},
+		add2[x_] := If[num @ Abs[x - 1] >= 10^21 epsilon, add[val, x]];
 		f[x_Plus] := f /@ x;
 		f[0] = 0;
-		f[x_?NumericQ y_] := If[x > 0, add[val, x]; block[1, x, y], add[val, -x]; block[-1, -x, y]];
+		f[Times[x_?NumericQ, y_]] := If[x > 0, add2[x]; block[1, x, y], add2[-x]; block[-1, -x, y]];
 		f[y_] := block[1, 1, y];
 		SetAttributes[f, Listable];
-		mat[unit, 1] = f[makeMat[extract[z, unit]][[1]]];
+		tmp = makeMat[extract[z, unit]][[1]];
+		mat[unit, 1] = {tmp[[1]], f[tmp[[2]]]};
 		tmp = makeMat[extract[z, scalar]];
 		scalnum = Length[tmp];
-		Do[mat[scalar, i] = f[tmp[[i]]], {i, scalnum}];
-		Do[tmp = makeMat[extract[z, s]]; secs[s] = Length[tmp]; Do[mat[s, i] = f[tmp[[i]]], {i, secs[s]}];, {s, Drop[sec, 2]}];
+		Do[mat[scalar, i] = {tmp[[i, 1]], f[tmp[[i, 2]]]}, {i, scalnum}];
+		Do[tmp = makeMat[extract[z, s]]; secs[s] = Length[tmp]; Do[mat[s, i] = {tmp[[i, 1]], f[tmp[[i, 2]]]}, {i, secs[s]}];, {s, Drop[sec, 2]}];
 		sdpobj[secs, scalnum, keys[val], mat]
 	]
+
+betaToString[op[x_, r_, p : 1 | -1, 1 | -1]] /; !isComplex[r] := TemplateApply["`sg``x`", <|"sg"->If[p > 0, "", "~"], "x"->ToString@x|>]
+betaToString[op[x_, r_?isComplex, 1, 1 | -1]] := TemplateApply["`sg``x`", <|"sg"->If[r === minrep[r, dual[r]], "", "~"], "x"->ToString@x|>]
+betaToString[\[Beta][a_, b_, c_][n_]] := TemplateApply["beta[`a`, `b`, `c`][`n`]", <|"a"->betaToString@a, "b"->betaToString@b, "c"->betaToString@c, "n"->ToString[n]|>]
+toCString[F[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[H[x_, y_, z_, w_]] := TemplateApply["ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Fp[x_, y_, z_, w_, 0]] := TemplateApply["one, ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Hp[x_, y_, z_, w_, 0]] := TemplateApply["one, ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
+toCString[Fp[x_, y_, z_, w_, o_]] := TemplateApply["ops.at(\"`o`\"), ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w, "o"->o|>];
+toCString[Hp[x_, y_, z_, w_, o_]] := TemplateApply["ops.at(\"`o`\"), ext(\"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w, "o"->o|>];
+
+toQboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
+	Module[{s, v, revval = reverseIndex[vals], numeq = Length @ mat[unit, 1][[2]], secsStr, valsStr, filename, extdelta, exts, extops, scalarsecs, secname, matsize, terms, syms, n, i, e, r, c, f, regsym, eqStr, convert},
+		terms = ConstantArray[{}, numeq];
+		syms = ConstantArray[None, numeq];
+		Do[matsize[scalar, i] = Length @ mat[scalar, i][[2, 1]], {i, scalarnum}];
+		Do[matsize[s, i] = Length @ mat[s, i][[2, 1]], {s, Keys[secs]}, {i, secs[s]}];
+		secname[unit] = secname[unit, 1] = "\"unit\"";
+		secname[scalar, id_] := If[scalarnum > 1, TemplateApply["\"(scalar, `n`)\"", <|"n" -> id - 1|>], "\"scalar\""];
+		secname[op[op, r_, 1, p_], id_] := TemplateApply["\"(`r`, `p``n`)\"", <|"r" -> r, "p" -> If[p > 0, "even", "odd"], "n" -> If[secs[op[op, r, 1, p]] > 1, ", " <> ToString[id - 1], ""]|>];
+		secsStr = StringRiffle[Flatten[Function[s, Array[Function[i, TemplateApply[secTemplate, <|"sec" -> secname[s, i], "p" -> (1 - s[[4]])/2, "sz" -> matsize[s, i], "opes" -> StringRiffle[betaToString /@ mat[s, i][[1]], ", "]|>]], secs[s]]] /@ Keys[secs]], "\n\t"];
+		valsStr = StringRiffle[Array[TemplateApply["val[`i`] = `v`;", <|"i" -> # - 1, "v" -> ToCpp`cppeval @ vals[[#]]|>] &, Length[vals]], "\n\t"];
+		exts = DeleteDuplicatesBy[Select[keys[allopsForBoot], #[[2]] === minrep[#[[2]], dual[#[[2]]]] && #[[3]] > 0 &], {#[[1]], #[[2]]} &];
+		filename = StringRiffle[TemplateApply["deltas.at(\"`k`\").str('#')", <|"k" -> #[[1]]|>] & /@ exts, " + \"-\" + "];
+		extdelta = StringRiffle[Array[TemplateApply["deltas[\"`k`\"] = parse(args[`i`]).value();", <|"i" -> #, "k" -> exts[[#, 1]]|>] &, Length[exts]], "\n\t"];
+		extops = StringRiffle[TemplateApply["ops.emplace(\"`k`\", Op(real(deltas.at(\"`k`\")), 0, c));  // `r`", <|"k" -> #[[1]], "r" -> #[[2]]|>] & /@ exts, "\n\t"];
+		scalarsecs = StringRiffle[Array[TemplateApply["// {`opes`}\n\tsecs.emplace_back(`sec`, `s`);", <|"sec" -> secname[scalar, #], "s" -> matsize[scalar, #], "opes" -> StringRiffle[betaToString /@ mat[scalar, #][[1]], ", "]|>] &, scalarnum], "\n\t"];
+		regsym[e_, F] := (syms[[e]] = "Odd";);
+		regsym[e_, H] := (syms[[e]] = "Even";);
+		regsym[e_, Fp] := (syms[[e]] = "Odd";);
+		regsym[e_, Hp] := (syms[[e]] = "Even";);
+		(* diagonal *)
+		convert[0, block[1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := toCString[bl];
+		convert[0, block[-1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := TemplateApply["real(-1), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[0, block[1, v_, bl_]] := TemplateApply["val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[0, block[-1, v_, bl_]] := TemplateApply["-val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		(* off-diagonal *)
+		convert[1, block[1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := TemplateApply["real(2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[-1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := TemplateApply["real(-2), `bl`", <|"bl" -> toCString[bl]|>];
+		convert[1, block[1, v_, bl_]] := TemplateApply["2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[1, block[-1, v_, bl_]] := TemplateApply["-2 * val[`i`], `bl`", <|"i" -> revval[v], "bl" -> toCString[bl]|>];
+		convert[s_, r_, r_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> r - 1, "block" -> convert[0, x]|>];
+		convert[s_, r_, c_, x_] := TemplateApply["eq.add(`sec`, `r`, `c`, `block`);", <|"sec" -> s, "r" -> r - 1, "c" -> c - 1, "block" -> convert[1, x]|>];
+		f[s_, n_, e_, r_, c_, 0] := None;
+		f[s_, n_, e_, r_, c_, x_Plus] := Scan[f[s, n, e, r, c, #] &, List @@ x];
+		f[s_, n_, e_, r_, c_, x_] := (regsym[e, x[[3, 0]]]; If[r <= c, AppendTo[terms[[e]], convert[secname[s, n], r, c, x]]]);
+		Do[f[unit, 1, e, 1, 1, mat[unit, 1][[2, e, 1, 1]]], {e, numeq}];
+		Do[f[scalar, n, e, r, c, mat[scalar, n][[2, e, r, c]]], {n, scalarnum}, {e, numeq}, {r, matsize[scalar, n]}, {c, r, matsize[scalar, n]}];
+		Do[f[s, n, e, r, c, mat[s, n][[2, e, r, c]]], {s, Keys[secs]}, {n, secs[s]}, {e, numeq}, {r, matsize[s, n]}, {c, r, matsize[s, n]}];
+		eqStr = StringRiffle[Array[TemplateApply[eqTemplate, <|"sym" -> syms[[#]], "terms" -> StringRiffle[terms[[#]], "\n\t\t"]|>] &, numeq], "\n\t"];
+		ToCpp`createCpp[secsStr, scalarsecs, valsStr, Length[vals], eqStr, Length[exts] + 1, extops, extdelta, filename]
+	]
+
+eqTemplate = "{
+		Eq eq(boot, `sym`);
+		`terms`
+		boot.add_equation(eq);
+	}"
+
+secTemplate = "{
+		// {`opes`}
+		Sector s(`sec`, `sz`, ContinuousType);
+		for (const auto& spin : spins)
+			if (spin % 2 == `p`) s.add_op(spin);
+		secs.push_back(s);
+	}"
 
 toString[F[x_, y_, z_, w_]] := TemplateApply["get(F, \"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
 toString[H[x_, y_, z_, w_]] := TemplateApply["get(H, \"`x`\", \"`y`\", \"`z`\", \"`w`\")", <|"x"->x, "y"->y, "z"->z, "w"->w|>];
@@ -713,36 +793,40 @@ toString[Hp[x_, y_, z_, w_, o_]] := TemplateApply["get(H, \"`x`\", \"`y`\", \"`z
 secs = <|op[op, rep[1], 1, 1] -> 3, ...|>
 scalarnum = 2
 vals = {1/2, Sqrt[2], Pi, ...}
-mat[sec, num] = {{{block[-1,Sqrt[2],F[e,v,e,v]]+block[1,Sqrt[3]/2,F[e,e,v,v]], ...}, ...}, ...}
+mat[sec, num] = {{\[Beta][op[], op[], op[]][1], \[Beta][op[], op[], op[]][1]}, {{{block[-1,Sqrt[2],F[e,v,e,v]]+block[1,Sqrt[3]/2,F[e,e,v,v]], ...}, ...}, ...}}
 *)
 toCboot[sdpobj[secs_, scalarnum_, vals_, mat_]] :=
-	Module[{s, v, o, revval = reverseIndex[vals], blk, f, convert, make, tmp, secsStr, valsStr, rmats, smats, umats, filename},
+	Module[{s, v, revval = reverseIndex[vals], blk, f, convert, make, tmp, secsStr, valsStr, rmats, smats, umats, filename, opinfo},
 		secsStr = StringRiffle[TemplateApply["(\"`r`\", `p`): `n`", <|"r" -> #[[2]], "p" -> (1 - #[[4]])/2, "n" -> secs[#]|>] & /@ Keys[secs], ", "];
 		valsStr = tensorToString[vals, ToPython`pyeval];
 		rmats = newSet[];
 		smats = newSet[];
 		filename = StringRiffle[TemplateApply["{0[`k`]}", <|"k" -> #|>] & /@ DeleteDuplicates[#[[1]] & /@ keys[allopsForBoot]], "-"];
+		opinfo = StringRiffle[TemplateApply["# `o`: `r`", <|"o" -> #[[1]], "r" -> #[[2]]|>] & /@ DeleteDuplicates[{#[[1]], #[[2]]} & /@ keys[allopsForBoot]], "\n"];
+		(* convert elements of mats into string. *)
 		convert[0] = "0";
-		convert[block[1, 1, bl_]] := TemplateApply["bl[`i`]", <|"i" -> blk[bl]|>];
-		convert[block[-1, 1, bl_]] := TemplateApply["-bl[`i`]", <|"i" -> blk[bl]|>];
+		convert[block[1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := TemplateApply["bl[`i`]", <|"i" -> blk[bl]|>];
+		convert[block[-1, one_, bl_]] /; num[Abs[one - 1]] < 10^21 epsilon := TemplateApply["-bl[`i`]", <|"i" -> blk[bl]|>];
 		convert[block[1, v_, bl_]] := TemplateApply["val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
 		convert[block[-1, v_, bl_]] := TemplateApply["-val[`j`] * bl[`i`]", <|"i" -> blk[bl], "j" -> revval[v]|>];
 		convert[x_Plus] := Module[{lx = List @@ x}, convert[lx[[1]]] <> StringJoin[Table[If[y[[1]] > 0, " + " <> convert[y], " - " <> convert[block[1, y[[2]], y[[3]]]]], {y, Rest[lx]}]]];
+		(* assign indices to block *)
 		f[x_List] := Scan[f, x];
 		f[x_Plus] := Scan[f, List @@ x];
 		f[block[_, _, bl_]] := If[!KeyExistsQ[blk, bl], blk[bl] = Length[blk];];
 		make[m_, init_] := Module[{tmp = <||>},
 			Scan[(tmp[#] = init[#]) &, Keys[init]];
-			blk = <||>; f[m];
+			blk = <||>; f[m[[2]]];
 			tmp["bl"] = tensorToString[Keys[blk], toString];
-			tmp["mats"] = If[Length[m[[1]]] != 1, tensorToString[m, convert], tensorToString[#[[1, 1]] & /@ m , convert]];
+			tmp["opes"] = StringRiffle[betaToString /@ m[[1]], ", "];
+			tmp["mats"] = If[Length[m[[2, 1]]] != 1, tensorToString[m[[2]], convert], tensorToString[#[[1, 1]] & /@ m[[2]], convert]];
 			tmp];
 		Do[add[rmats, make[mat[s, n], <|"r" -> s[[2]], "p" -> (1 - s[[4]])/2, "n" -> n - 1|>]], {s, Keys[secs]}, {n, secs[s]}];
 		Do[add[smats, make[mat[scalar, n], <|"n" -> n - 1|>]], {n, scalarnum}];
 		rmats = StringRiffle[TemplateApply[rmatstemplate, #] & /@ keys[rmats], "\n"];
 		smats = StringRiffle[TemplateApply[smatstemplate, #] & /@ keys[smats], "\n"];
 		umats = TemplateApply[umatstemplate, make[mat[unit, 1], <||>]];
-		ToPython`createPython[secsStr, scalarnum, valsStr, rmats, smats, umats, filename]
+		ToPython`createPython[secsStr, scalarnum, valsStr, rmats, smats, umats, filename, opinfo]
 	]
 
 tensorToString[tensor_List, conv_] := "[" <> StringRiffle[tensorToString[#, conv] & /@ tensor, ", "] <> "]"
@@ -750,10 +834,12 @@ tensorToString[tensor_, conv_] := conv[tensor]
 
 rmatstemplate = "	if sector == \"`r`\" and spin % 2 == `p` and num == `n`:
 		bl = `bl`
+		# {`opes`}
 		return `mats`"
 
 smatstemplate = "	if num == `n`:
 		bl = `bl`
+		# {`opes`}
 		return `mats`"
 
 umatstemplate = "bl = `bl`
@@ -767,11 +853,11 @@ makeG[eqn[sec_, eq_List]] :=
 		add[a_, a_] := add[a];
 		add[a_, b_] := (vs[a] = 1; vs[b] = 1; es[Sort[{a, b}]] = 1);
 		f[a_Plus] := Scan[f, List @@ a];
-		f[_?NumericQ y_] := f[y];
-		f[sum[(_F | _H) a_ b_, _]] := add[a, b];
-		f[single[(_Fp | _Hp) a_ b_]] := add[a, b];
-		f[sum[(_F | _H) a_^2, _]] := add[a, a];
-		f[single[(_Fp | _Hp) a_^2]] := add[a, a];
+		f[Times[_?NumericQ, y_]] := f[y];
+		f[sum[Times[_F | _H, a_, b_], _]] := add[a, b];
+		f[single[Times[_Fp | _Hp, a_, b_]]] := add[a, b];
+		f[sum[Times[_F | _H, a_^2], _]] := add[a, a];
+		f[single[Times[_Fp | _Hp, a_^2]]] := add[a, a];
 		Scan[f, eq];
 		Graph[Labeled[#, format[#]] & /@ Keys[vs], #[[1]] <-> #[[2]] & /@ Keys[es], PlotLabel -> ToString[label, StandardForm]]]
 

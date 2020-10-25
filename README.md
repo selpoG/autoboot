@@ -3,10 +3,16 @@
 Automatical Generator of Conformal Bootstrap Equation
 
 For more information, see
-[autoboot: A generator of bootstrap equations with global symmetry](https://arxiv.org/abs/1903.10522).
+[autoboot: A generator of bootstrap equations with global symmetry](https://arxiv.org/abs/1903.10522),
+or [An Automated Generation of Bootstrap Equations for Numerical Study of Critical Phenomena](https://arxiv.org/abs/2006.04173).
 
 Some usages also can be checked by typing `?someSymbolName` (for example, `?getGroup`) in [Mathematica](http://reference.wolfram.com/language/tutorial/GettingInformationAboutWolframLanguageObjects.html).
 ``?somePackageName`*`` (for example, ``?ClebschGordan`*``) will give package-lebel information.
+These usages are also documented in [inv.md](doc/inv.md), [group.md](doc/group.md).
+
+- [Setup](#setup)
+- [Usage](#usage)
+- [Example](#example)
 
 ## Setup
 

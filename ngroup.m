@@ -31,7 +31,7 @@ i[a,b] is one-dimensional irrep-object with sign a,b. This is recognised only by
 minrep::usage = "minrep[r,s] gives r if r < s else s. r and s are irrep-objects."
 setGroup::usage = "setGroup[G] loads inv.m with global symmetry G. This action clears all values calculated by inv.m previously."
 available::usage = "available[g,i] gives whether group[g,i] are supported or not."
-setPrecision::usage = "After calling setPrecision[prec], all calculation in this package will be done in precision prec and any number less than "<>ToString[Superscript[10,"prec-10"]]<>" will be choped. "<>
+setPrecision::usage = "After calling setPrecision[prec], all calculation in this package will be done in precision prec and any number less than 1/"<>ToString[Superscript[10,"prec-10"]]<>" will be choped. "<>
 "It is assumed that prec is sufficiently bigger than 10 and setPrecision is called just once just after loading this package."
 
 (* all irrep-objects of G=group[g,i] are rep[1], rep[2], ..., rep[n] (n=G[ncg]). *)
