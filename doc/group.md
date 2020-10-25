@@ -6,9 +6,13 @@ and any dihedral and quartenion groups.
 Supported Lie groups are `su[2]`, `so[2]`, `o[2]`, `so[3]`, `o[3]`.
 We support only compact groups, so we can assume any finite dimensional irrep can be unitarized.
 
+This package imports `groupd.m` and `grouplie.m`.
+
 - [Get Groups](#get-groups)
 - [Group Data](#group-data)
 - [Irrep-Objects](#irrep-objects)
+- [`groupd.m`](#groupdm)
+- [`grouplie.m`](#groupliem)
 
 ---
 
@@ -127,3 +131,69 @@ This is recognised only by `dih[n]` (`n`: odd) and `o[2]`.
 
 `i[a,b]` is one-dimensional irrep-object with sign `a,b`.
 This is recognised only by `dih[n]` (`n`:even), `dic[n]`.
+
+---
+
+## `groupd.m`
+
+If `n` is even, all irrep-objects of `dih[n]` are `i[1,1], i[1,-1], i[-1,1], i[-1,-1], v[1], ..., v[n/2-1]`.
+If `n` is odd, all irrep-objects of `dih[n]` are `i[1], i[-1] v[1], ..., v[(n-1)/2]`.
+All irrep-objects of `dic[n]` are `i[1,1], i[1,-1], i[-1,1], i[-1,-1], v[1], ..., v[n-1]`.
+
+### `getDihedral`
+
+`getDihedral[n]` returns group-object `dih[n]` which represents the dihedral group of order `2n`.
+
+### `getDicyclic`
+
+`getDicyclic[n]` returns group-object `dic[n]` which represents the dicyclic group of order `4n`.
+
+### `dih`
+
+`dih[n]` is a group-object which is the dihedral group of order `2n`.
+Before using this value, you have to call `getDihedral[n]` to get proper group-object.
+
+### `dic`
+
+`dic[n]` is a group-object which is the dicyclic group of order `4n`.
+Before using this value, you have to call `getDicyclic[n]` to get proper group-object.
+
+---
+
+## `grouplie.m`
+
+All irrep-objects of `G=su[2]` are `v[0], v[1/2], v[1], v[3/2], ...`.
+All irrep-objects of `G=o[3]` are `v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], ...`.
+All irrep-objects of `G=so[3]` are `v[0], v[1], v[2], v[3], ...`.
+All irrep-objects of `G=o[2]` are `i[1], i[-1], v[1], v[2], v[3], ...`.
+All irrep-objects of `G=so[2]` are `v[x]` (`x \in \mathbb{R}`).
+
+### `getSU`
+
+`getSU[n]` returns group-object `su[n]` which represents the special unitary group of rank `n`.
+`n` must be `2,4`.
+
+### `getO`
+
+`getO[n]` returns group-object `o[n]` which represents the orthogonal group of rank `n`.
+`n` must be `2,3`.
+
+### `getSO`
+
+`getSO[n]` returns group-object `su[n]` which represents the special orthogonal group of rank `n`.
+`n` must be `2,3`.
+
+### `su`
+
+`su[n]` is a group-object which is the special unitary group of rank `n`.
+Before using this value, you have to call `getSU[n]` to get proper group-object.
+
+### `o`
+
+`o[n]` is a group-object which is the orthogonal group of rank `n`.
+Before using this value, you have to call `getO[n]` to get proper group-object.
+
+### `so`
+
+`so[n]` is a group-object which is the special orthogonal group of rank `n`.
+Before using this value, you have to call `getSO[n]` to get proper group-object.
