@@ -4,7 +4,7 @@ BeginPackage["GroupInfo`"]
 
 (* Supported groups are direct products of finite groups and some lie groups. *)
 (* Supported finite groups are those whose irreps was calculated by GAP (in sgd folder), and any dihedral and quartenion groups. *)
-(* Supported lie groups are su[2], so[2], o[2], so[3], o[3]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
+(* Supported lie groups are su[2], su[4], so[2], o[2], so[3], o[3]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
 getGroup::usage = "getGroup[g,i] loads data from sg.g.i.m and returns group-object group[g,i]. g is the order of the finite group, i is the number of the group assined by GAP."
 product::usage = "product[g1,g2] returns group-object pGroup[g1,g2] which represents direct product of two group-object g1, g2."
 group::usage = "group[g,i] is a group-object whose order is g and whose number assigned by GAP is i. Before using this value, you have to call getGroup[g,i] to get proper group-object."

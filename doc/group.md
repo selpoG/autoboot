@@ -3,7 +3,7 @@
 Supported groups are direct products of finite groups and some Lie groups.
 Supported finite groups are those whose irreps was calculated by `GAP` (in `sgd/`),
 and any dihedral and quartenion groups.
-Supported Lie groups are `su[2]`, `so[2]`, `o[2]`, `so[3]`, `o[3]`.
+Supported Lie groups are `su[2]`, `su[4]`, `so[2]`, `o[2]`, `so[3]`, `o[3]`.
 We support only compact groups, so we can assume any finite dimensional irrep can be unitarized.
 
 This package imports `groupd.m` and `grouplie.m`.
@@ -46,6 +46,13 @@ This action clears all values calculated by `inv.m` previously.
 ### `available`
 
 `available[g,i]` gives whether `group[g,i]` are supported or not.
+
+### `setPrecision` (only in `ngroup.md`, not in `group.md`)
+
+After calling `setPrecision[prec]`, all calculation in this package will be done in precision `prec`
+and any number less than `1/10^(prec-10)` will be choped.
+
+It is assumed that `prec` is sufficiently bigger than `10` and `setPrecision` is called just once just after loading this package.
 
 ---
 
@@ -163,9 +170,15 @@ Before using this value, you have to call `getDicyclic[n]` to get proper group-o
 ## `grouplie.m`
 
 All irrep-objects of `G=su[2]` are `v[0], v[1/2], v[1], v[3/2], ...`.
+
+All irrep-objects of `G=su[4]` are `v[n, m, l]` (`n,m,l=0,1,2,...` and `n >= m >= l`).
+
 All irrep-objects of `G=o[3]` are `v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], ...`.
+
 All irrep-objects of `G=so[3]` are `v[0], v[1], v[2], v[3], ...`.
+
 All irrep-objects of `G=o[2]` are `i[1], i[-1], v[1], v[2], v[3], ...`.
+
 All irrep-objects of `G=so[2]` are `v[x]` (`x \in \mathbb{R}`).
 
 ### `getSU`
