@@ -69,7 +69,10 @@ zero[x_] := {zero2[x]}
 zero[True] = {}
 
 importPackage[from_, to_, symbols_List] := Scan[importPackage[from, to, #]&, symbols]
-importPackage[from_, to_, symbol_] := (Evaluate[Symbol[to<>symbol]] = Symbol[from<>symbol];)
+importPackage[from_, to_, symbol_] := (
+	(* Clear by name so an existing alias is not evaluated to its protected source. *)
+	Clear[Evaluate[to<>symbol]];
+	Evaluate[Symbol[to<>symbol]] = Symbol[from<>symbol];)
 
 newSet[] := Module[{s}, vs[s] ^= <||>; sz[s] ^= 0; set[s]]
 newSet[x__] := Module[{s, ans, t}, vs[s] ^= <||>; sz[s] ^= 0; ans = set[s]; Do[add[ans, t], {t, List[x]}]; ans]
