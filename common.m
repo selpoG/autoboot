@@ -68,8 +68,12 @@ zero[x_And] := MyReap[Scan[Sow[zero2[#]] &, List @@ x]]
 zero[x_] := {zero2[x]}
 zero[True] = {}
 
-importPackage[from_, to_, symbols_List] := Scan[importPackage[from, to, #]&, symbols]
-importPackage[from_, to_, symbol_] := (Evaluate[Symbol[to<>symbol]] = Symbol[from<>symbol];)
+importPackage[from_String, to_String, symbols_List] := Scan[importPackage[from, to, #]&, symbols]
+importPackage[from_String, to_String, symbol_String] :=
+	ToExpression[to<>symbol, InputForm, Function[target,
+		Clear[target];
+		target = Symbol[from<>symbol],
+		HoldAll]]
 
 newSet[] := Module[{s}, vs[s] ^= <||>; sz[s] ^= 0; set[s]]
 newSet[x__] := Module[{s, ans, t}, vs[s] ^= <||>; sz[s] ^= 0; ans = set[s]; Do[add[ans, t], {t, List[x]}]; ans]
