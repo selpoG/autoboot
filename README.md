@@ -11,6 +11,7 @@ Some usages also can be checked by typing `?someSymbolName` (for example, `?getG
 These usages are also documented in [inv.md](doc/inv.md), [group.md](doc/group.md).
 
 - [Setup](#setup)
+- [Testing](#testing)
 - [Usage](#usage)
 - [Example](#example)
 
@@ -18,6 +19,30 @@ These usages are also documented in [inv.md](doc/inv.md), [group.md](doc/group.m
 
 ```sh
 tar xvf sgd.tar.xz
+```
+
+## Testing
+
+Run the complete test suite with:
+
+```sh
+make test
+```
+
+This runs both the license-free checks and the Wolfram Language regression
+tests. The latter require an installed and activated `wolframscript`.
+
+GitHub Actions runs only the license-free part so that CI does not require a
+Wolfram license or entitlement:
+
+```sh
+make test-free
+```
+
+To run only the tests that exercise autoboot with the Wolfram Engine:
+
+```sh
+make test-wolfram
 ```
 
 ## Usage
