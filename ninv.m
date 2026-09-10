@@ -458,7 +458,7 @@ x:sF[o1_, o2_, o3_, o4_][s_, n_, m_, p : 1 | -1] /; s =!= minrep[s, dual[s]] := 
 		Sum[With[{o = op[op, dual[s], 1, sp], do = op[op, s, 1, sp]}, sum[ComplexExpand[\[Alpha][o1, o2, o3, o4][do, n, m] F[{o1, o2, o3, o4}, p]], o]], {sp, {1, -1}}]]]
 x:sF[o1_, o2_, o3_, o4_][s_, n_, m_, p : 1 | -1] /; isPseaudo[s] := x =
 	Simplify[Module[{sp}, Sum[With[{o = op[op, s, 1, sp], do = op[op, s, -1, sp]},
-			sum[ComplexExpand[(\[Alpha][o1, o2, o3, o4][o, n, m] + \[Alpha][o1, o2, o3, o4][do, n, m]) F[{o1, o2, o3, o4}, p]], o]], {sp, {1, -1}}]]]
+			sum[ComplexExpand[(\[Alpha][o1, o2, o3, o4][o, n, m] - \[Alpha][o1, o2, o3, o4][do, n, m]) F[{o1, o2, o3, o4}, p]], o]], {sp, {1, -1}}]]]
 
 x:sFp[o1_, o2_, o3_, o4_][s_, n_, m_, p : 1 | -1] /; KeyExistsQ[allreps, s] := x =
 	Module[{o}, Sum[single[ComplexExpand[\[Nu][o1, o2, o3, o4][o, n, m] Fp[{o1, o2, o3, o4}, p, o]]], {o, Keys[allreps[s]]}]]

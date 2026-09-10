@@ -1,10 +1,15 @@
 PROJ := GAPToMathematica
+DOTNET ?= dotnet
+CONFIGURATION ?= Release
 SUFFIXES := .deps.json .dll .pdb .runtimeconfig.json
 TARGET := $(addprefix bin/$(PROJ),$(SUFFIXES))
 SCRIPTDIR := Scripts
 EXEFILE := bin/$(PROJ).dll
 
 SRC := \
+	GAPToMathematica.csproj \
+	../global.json \
+	Makefile \
 	*.cs \
 	Group/*.cs \
 	Parser/*.cs
@@ -16,17 +21,15 @@ SCRIPTSTARGET := $(addprefix bin/,$(notdir $(SCRIPTS)))
 
 all: $(TARGET) $(SCRIPTSTARGET) ;
 
-$(TARGET): $(SRC)
-	dotnet publish -o bin
+$(TARGET) &: $(SRC)
+	$(DOTNET) publish -c $(CONFIGURATION) -o bin
 
 bin/%.sh: $(SCRIPTDIR)/%.sh
 	cp $< $@
+	chmod +x $@
 
 run: all
-	mono $(EXEFILE)
+	$(DOTNET) $(EXEFILE)
 
 clean:
-	rm -f $(TARGET)
-	rm -f $(SCRIPTSTARGET)
-	rm -rf bin/Debug
-	rm -rf obj
+	rm -rf bin obj
