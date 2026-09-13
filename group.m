@@ -4,7 +4,7 @@ BeginPackage["GroupInfo`"]
 
 (* Supported groups are direct products of finite groups and some lie groups. *)
 (* Supported finite groups are those whose irreps was calculated by GAP (in sgd folder), and any dihedral and quartenion groups. *)
-(* Supported lie groups are su[2], su[4], so[2], o[2], so[3], o[3]. We support only compact groups, so we can assume any finite dim. irrep can be unitarized. *)
+(* Supported compact Lie groups include SU, SO, Spin, Sp, all finite Cartan types, and O(n). *)
 getGroup::usage = "getGroup[g,i] loads data from sg.g.i.m and returns group-object group[g,i]. g is the order of the finite group, i is the number of the group assined by GAP."
 product::usage = "product[g1,g2] returns group-object pGroup[g1,g2] which represents direct product of two group-object g1, g2."
 group::usage = "group[g,i] is a group-object whose order is g and whose number assigned by GAP is i. Before using this value, you have to call getGroup[g,i] to get proper group-object."
@@ -24,7 +24,10 @@ gA::usage = "gA is a list of all generator-objects of lie algebra part of the gr
 rep::usage = "rep[n] is n-th irrep-object (n is assined by GAP and corresponds to the index of ct). This is recognised only by group[g,i].
 rep[r1,r2] is natural irrep-object of pGroup[g1,g2] where r1 is irrep-object of g1, r2 is irrep-object of g2. This is recognised only by pGroup[g1,g2]."
 v::usage = "v[n] is spin-n irrep-object. This is recognised only by dih[n], dic[n], su[2], so[3], o[2] and so[2].
-v[n,s] is spin-n irrep-object with sign s. This is recognised only by o[3]."
+v[n,s] is spin-n irrep-object with sign s for o[3].
+v[l1,...,l(n-1)] gives Young diagram row lengths for su[n], n >= 3.
+v[a1,...,ar] gives Dynkin labels for lie[type,r], spin[n], sp[n], and so[n] for n >= 4. SO labels must descend from Spin. See doc/LieGroups.md.
+v[a1,...,ar,p] labels o[n], n >= 4, with extension parity +/-1 or induced-pair label 0. See doc/OrthogonalGroups.md."
 i::usage = "i[a] is one-dimensional irrep-object with sign a. This is recognised only by dih[n] (n: odd) and o[2].
 i[a,b] is one-dimensional irrep-object with sign a,b. This is recognised only by dih[n] (n:even), dic[n]."
 (* We need all irreps to be sorted in some linear order. *)

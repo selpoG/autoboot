@@ -9,3 +9,8 @@ test-free:
 
 test-wolfram:
 	./test/run-wolfram-tests.sh
+
+.PHONY: test-large
+# Optional extended integration tests; requires Wolfram Engine.
+test-large:
+	./benchmark/validate-large-suite.sh

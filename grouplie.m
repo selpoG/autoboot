@@ -1,14 +1,30 @@
 Needs["GroupInfo`", "group.m"]
 Needs["RootSystem`", "root.m"]
+Needs["SURepresentations`", "su-representations.m"]
+Needs["LieRepresentations`", "lie-representations.m"]
+Needs["OrthogonalRepresentations`", "orthogonal-representations.m"]
 
 BeginPackage["GroupInfoLie`"]
 
-getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of rank n. n must be 2."
-getO::usage = "getO[n] returns group-object o[n] which represents the orthogonal group of rank n. n must be 2,3."
-getSO::usage = "getSO[n] returns group-object su[n] which represents the special orthogonal group of rank n. n must be 2,3."
-su::usage = "su[n] is a group-object which is the special unitary group of rank n. Before using this value, you have to call getSU[n] to get proper group-object."
-o::usage = "o[n] is a group-object which is the orthogonal group of rank n. Before using this value, you have to call getO[n] to get proper group-object."
-so::usage = "so[n] is a group-object which is the special orthogonal group of rank n. Before using this value, you have to call getSO[n] to get proper group-object."
+getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of degree n (rank n-1). n must be an integer >= 2."
+getSU::degree = "SU degree `1` must be an integer >= 2."
+getO::usage = "getO[n] returns O(n), n >= 2. O(2,3) retain their labels; n >= 4 uses v[a1,...,ar,p] with Dynkin labels and extension parity p=+/-1, or p=0 for an induced pair."
+getSO::usage = "getSO[n] returns the special orthogonal group so[n], for integer n >= 2. SO(2,3) retain their existing labels; n >= 4 uses Dynkin labels that descend from Spin(n)."
+su::usage = "su[n] is a group-object which is the special unitary group of degree n (rank n-1). Before using this value, you have to call getSU[n] to get proper group-object."
+o::usage = "o[n] is a group-object which is the orthogonal group of degree n. Before using this value, you have to call getO[n] to get proper group-object."
+so::usage = "so[n] is a group-object which is the special orthogonal group of degree n. Before using this value, you have to call getSO[n] to get proper group-object."
+
+getLie::usage = "getLie[type,rank] constructs a compact simply connected Lie group of Cartan type A, B, C, D, E, F or G. Irreps v[a1,...,ar] use Dynkin labels. D2 denotes Spin(4)."
+getLie::type = "Unsupported finite Cartan type and rank: `1`."
+lie::usage = "lie[type,rank] is initialized by getLie[type,rank]. Its irreps use Dynkin labels."
+getSp::usage = "getSp[n] constructs compact Sp(n), of rank n with defining dimension 2n. Irreps use Dynkin labels. n must be an integer >= 1."
+getSp::degree = "Sp requires one integer rank >= 1; got `1`."
+sp::usage = "sp[n] is the compact symplectic group initialized by getSp[n]."
+getSpin::usage = "getSpin[n] constructs Spin(n), including spinor irreps with Dynkin labels. n must be an integer >= 4."
+getSpin::degree = "Spin requires one integer degree >= 4; got `1`. Use getSU[2] for Spin(3)."
+spin::usage = "spin[n] is initialized by getSpin[n]."
+getO::degree = "O requires one integer degree >= 2; got `1`."
+getSO::degree = "SO requires one integer degree >= 2; got `1`."
 
 (* all irrep-objects of G=su[2] are v[0], v[1/2], v[1], v[3/2], .... *)
 (* all irrep-objects of G=o[3] are v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], .... *)
@@ -64,106 +80,27 @@ getO[3] := getO[3] = AbortProtect @ Module[{G},
 	G
 ]
 
-getSU[4] := getSU[4] = AbortProtect @ Module[{G, e, high, tensor, rep, dimT, gen,
-		extend, extendLoop, basis, repMat, repMats, setRep, lowers = {4, 5, 6}},
-	high[1] = SparseArray @ {1, 0, 0, 0};
-	high[2] = SparseArray @ {1, 0, 0, 0, 0, 0};
-	high[3] = SparseArray @ {1, 0, 0, 0};
-	tensor[x_, y_] := Module[{ix = Most @ ArrayRules[x], iy = Most @ ArrayRules[y], m = Length[y], i, j},
-	SparseArray[
-		Flatten@Table[
-			m (i[[1, 1]] - 1) + (j[[1, 1]] - 1) + 1 -> i[[2]] j[[2]],
-		{i, ix}, {j, iy}],
-		{Length[x] m}]];
-	gen = rep[1] = SparseArray @@ # & /@ {
-		{{{1, 2} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{2, 3} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{3, 4} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{2, 1} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{3, 2} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{4, 3} -> 1, {_, _} -> 0}, {4, 4}}};
-	rep[2] = SparseArray @@ # & /@ {
-		{{{2, 4} -> 1, {3, 5} -> 1, {_,_} -> 0}, {6, 6}},
-		{{{1, 2} -> 1, {5, 6} -> 1, {_,_} -> 0}, {6, 6}},
-		{{{2, 3} -> 1, {4, 5} -> 1, {_,_} -> 0}, {6, 6}},
-		{{{4, 2} -> 1, {5, 3} -> 1, {_,_} -> 0}, {6, 6}},
-		{{{2, 1} -> 1, {6, 5} -> 1, {_,_} -> 0}, {6, 6}},
-		{{{3, 2} -> 1, {5, 4} -> 1, {_,_} -> 0}, {6, 6}}};
-	rep[3] = SparseArray @@ # & /@ {
-		{{{3, 4} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{2, 3} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{1, 2} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{4, 3} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{3, 2} -> 1, {_, _} -> 0}, {4, 4}},
-		{{{2, 1} -> 1, {_, _} -> 0}, {4, 4}}};
-	rep[][_] := {{0}};
-	t:rep[is__Integer][m_] := t = Module[{l = {is}, n, i},
-		n = Length[l];
-		Sum[KroneckerProduct[
-			SparseArray[{{i_, i_} -> 1}, dimT @@ Take[l, i - 1]],
-			rep[l[[i]]][[m]],
-			SparseArray[{{i_, i_} -> 1}, dimT @@ Drop[l, i]]]
-		, {i, n}]];
-	dimT[] = 1;
-	dimT[1] = 4; dimT[2] = 6; dimT[3] = 4;
-	dimT[x__] := Times @@ dimT /@ {x};
-	dimT[{x___}] := dimT[x];
-	high[x___] := Fold[tensor[#1, high[#2]] &, {1}, {x}];
-	high[{x___}] := high[x];
-	rep[{x___}] := rep[x];
-	extend[y_, vs_] := TakeWhile[#, Norm[#] > 0 &] & @ Module[{v, g}, SparseArray /@ RowReduce @ MyReap[
-		Scan[Sow, vs];
-		Do[Sow[rep[y][g].v], {v, vs}, {g, lowers}]]];
-	extendLoop[y_, vec_] := Module[{vs = {vec}, dim2 = 1, rep, upto, temp},
-		rep = v @@ Total[{{1,0,0},{1,1,0},{1,1,1}}[[#]] & /@ y];
-		upto = G[dim[rep]];
-		temp = PrintTemporary["basis ", rep, ": calculate upto ", upto];
-		Monitor[While[True,
-			vs = extend[y, vs];
-			If[Length[vs] == dim2, Break[], dim2 = Length[vs]]
-		], "dim = " <> ToString[dim2]];
-		NotebookDelete[temp];
-		vs];
-	basis[x___Integer] := basis[x] = SparseArray @ Orthogonalize[extendLoop[{x}, high[x]]];
-	repMat[r___][m_] := Conjugate[basis[r]].rep[r][m].Transpose[basis[r]];
-	repMats[v[n_, m_, l_]] := Array[(repMat @@ MyReap[Do[Sow[1], n - m]; Do[Sow[2], m - l]; Do[Sow[3], l]])[#] &, 6];
-	G = su[4];
-	G[id] = v[0, 0, 0];
-	G[dim[v[n_, m_, l_]]] := dimension["A", 3, {n, m, l}];
-	G[prod[a:v[n_, m_, l_], b:v[p_, q_, r_]]] /; G[minrep[a, b]] =!= a := G[prod[b, a]];
-	x:G[prod[a:v[_, _, _], b:v[_, _, _]]] := x = v @@ # & /@ decompose @ productReps[irrep["A", 3, List @@ a], irrep["A", 3, List @@ b]];
-	G[dual[v[n_, m_, l_]]] := v[n, n - l, n - m];
+getSU[n_Integer] /; n >= 3 := getSU[n] = AbortProtect @ Module[{G = su[n], rank = n - 1, gen},
+	G[id] = v @@ ConstantArray[0, rank];
 	G[isrep[_]] := False;
-	G[isrep[v[n_, m_, l_]]] := IntegerQ[n] && IntegerQ[m] && IntegerQ[l] && n >= m >= l >= 0;
+	G[isrep[r_v]] := SURepresentations`validWeight[n, List @@ r];
+	G[dim[r_v]] /; G[isrep[r]] := dimension["A", rank, List @@ r];
+	G[dual[r_v]] /; G[isrep[r]] := v @@ Prepend[r[[1]] - Reverse[Rest[List @@ r]], r[[1]]];
+	G[minrep[a_v, b_v]] /; G[isrep[a]] && G[isrep[b]] :=
+		First @ SortBy[{a, b}, {Total[List @@ #] &, (-(List @@ #)) &}];
+	G[prod[a_v, b_v]] /; G[isrep[a]] && G[isrep[b]] :=
+		G[prod[a, b]] = G[prod[b, a]] = (v @@ # & /@ decompose @
+			productReps[irrep["A", rank, List @@ a], irrep["A", rank, List @@ b]]);
 	G[gG] = {};
-	G[gA] = {G[x[1]], G[x[2]], G[x[3]], G[y[1]], G[y[2]], G[y[3]]};
-	e[i_, j_] := Array[If[#1 == i && #2 == j, 1, 0] &, {4, 4}];
-	G[_][v[0, 0, 0]] := {{0}};
-	t:G[x[i_]][a:v[n_, m_, l_]] := (setRep[a]; t);
-	t:G[y[i_]][a:v[n_, m_, l_]] := (setRep[a]; t);
-	s:setRep[a:v[n_, m_, l_]] := s = Module[{temp},
-		temp = PrintTemporary["generating irrep ", a, "..."];
-		setRep[a, repMats[a]];
-		NotebookDelete[temp];
+	G[gA] = Array[G[gen[#]] &, 2 rank];
+	G[gen[j_Integer]][r_v] /; 1 <= j <= 2 rank && G[isrep[r]] := Module[{m},
+		m = SURepresentations`matrices[n, List @@ r];
+		If[m === $Failed, $Failed, G[gen[j]][r] = m[[j]]]
 	];
-	s:setRep[a:v[n_, m_, l_], r_] := s = Module[{i},
-		Do[
-			G[x[i]][a] = r[[i]];
-			G[y[i]][a] = r[[i + 3]];
-		, {i, 3}];
-	];
-	setRep[v[1, 0, 0], rep[1]];
-	setRep[v[1, 1, 0], rep[2]];
-	setRep[v[1, 1, 1], rep[3]];
-	G[minrep[a:v[n_, m_, l_], b:v[p_, q_, r_]]] := Which[
-		n + m + l < p + q + r, a,
-		n + m + l > p + q + r, b,
-		n > p, a,
-		n < p, b,
-		m > q, a,
-		True, b];
 	G
 ]
+
+getSU[n_] := (Message[getSU::degree, n]; $Failed)
 
 getSO[3] := getSO[3] = AbortProtect @ Module[{G},
 	G = so[3];
@@ -226,6 +163,10 @@ getSO[2] := getSO[2] = AbortProtect @ Module[{G},
 	G[minrep[v[n_], v[m_]]] := v[Min[n, m]];
 	G
 ]
+
+lieCheck = Identity
+lieNumber = Identity
+Get["lie-groups.m"]
 
 End[ ]
 

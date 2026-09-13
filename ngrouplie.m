@@ -1,13 +1,30 @@
 Needs["NGroupInfo`", "ngroup.m"]
+Needs["RootSystem`", "root.m"]
+Needs["SURepresentations`", "su-representations.m"]
+Needs["LieRepresentations`", "lie-representations.m"]
+Needs["OrthogonalRepresentations`", "orthogonal-representations.m"]
 
 BeginPackage["NGroupInfoLie`"]
 
-getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of rank n. n must be 2."
-getO::usage = "getO[n] returns group-object o[n] which represents the orthogonal group of rank n. n must be 2,3."
-getSO::usage = "getSO[n] returns group-object su[n] which represents the special orthogonal group of rank n. n must be 2,3."
-su::usage = "su[n] is a group-object which is the special unitary group of rank n. Before using this value, you have to call getSU[n] to get proper group-object."
-o::usage = "o[n] is a group-object which is the orthogonal group of rank n. Before using this value, you have to call getO[n] to get proper group-object."
-so::usage = "so[n] is a group-object which is the special orthogonal group of rank n. Before using this value, you have to call getSO[n] to get proper group-object."
+getSU::usage = "getSU[n] returns group-object su[n] which represents the special unitary group of degree n (rank n-1). n must be an integer >= 2."
+getSU::degree = "SU degree `1` must be an integer >= 2."
+getO::usage = "getO[n] returns O(n), n >= 2. O(2,3) retain their labels; n >= 4 uses v[a1,...,ar,p] with Dynkin labels and extension parity p=+/-1, or p=0 for an induced pair."
+getSO::usage = "getSO[n] returns the special orthogonal group so[n], for integer n >= 2. SO(2,3) retain their existing labels; n >= 4 uses Dynkin labels that descend from Spin(n)."
+su::usage = "su[n] is a group-object which is the special unitary group of degree n (rank n-1). Before using this value, you have to call getSU[n] to get proper group-object."
+o::usage = "o[n] is a group-object which is the orthogonal group of degree n. Before using this value, you have to call getO[n] to get proper group-object."
+so::usage = "so[n] is a group-object which is the special orthogonal group of degree n. Before using this value, you have to call getSO[n] to get proper group-object."
+
+getLie::usage = "getLie[type,rank] constructs a compact simply connected Lie group of Cartan type A, B, C, D, E, F or G. Irreps v[a1,...,ar] use Dynkin labels. D2 denotes Spin(4)."
+getLie::type = "Unsupported finite Cartan type and rank: `1`."
+lie::usage = "lie[type,rank] is initialized by getLie[type,rank]. Its irreps use Dynkin labels."
+getSp::usage = "getSp[n] constructs compact Sp(n), of rank n with defining dimension 2n. Irreps use Dynkin labels. n must be an integer >= 1."
+getSp::degree = "Sp requires one integer rank >= 1; got `1`."
+sp::usage = "sp[n] is the compact symplectic group initialized by getSp[n]."
+getSpin::usage = "getSpin[n] constructs Spin(n), including spinor irreps with Dynkin labels. n must be an integer >= 4."
+getSpin::degree = "Spin requires one integer degree >= 4; got `1`. Use getSU[2] for Spin(3)."
+spin::usage = "spin[n] is initialized by getSpin[n]."
+getO::degree = "O requires one integer degree >= 2; got `1`."
+getSO::degree = "SO requires one integer degree >= 2; got `1`."
 
 (* all irrep-objects of G=su[2] are v[0], v[1/2], v[1], v[3/2], .... *)
 (* all irrep-objects of G=o[3] are v[0,1], v[0,-1], v[1,1], v[1,-1], v[2,1], v[2,-1], v[3,1], v[3,-1], .... *)
@@ -18,6 +35,7 @@ so::usage = "so[n] is a group-object which is the special orthogonal group of ra
 Begin["`Private`"]
 
 CommonFunctions`importPackage["NGroupInfo`", "NGroupInfoLie`Private`", {"id", "dim", "prod", "dual", "isrep", "gG", "gA", "minrep", "v", "i"}]
+CommonFunctions`importPackage["RootSystem`", "NGroupInfoLie`Private`", {"dimension", "irrep", "productReps", "decompose"}]
 s
 t
 e[l_] := e[l] = Array[If[#2 == #1 + 1, Sqrt[(l + (l - #1 + 1)) (l - (l - #1 + 1) + 1)/2], 0] &, {2 l + 1, 2 l + 1}];
@@ -58,6 +76,28 @@ getO[3] := getO[3] = AbortProtect @ Module[{G},
 	G[minrep[v[n_, s_], v[m_, t_]]] := If[n < m, v[n, s], v[m, t]];
 	G
 ]
+
+getSU[n_Integer] /; n >= 3 := NGroupInfo`Private`checkPrec[getSU[n] = AbortProtect @ Module[{G = su[n], rank = n - 1, gen},
+	G[id] = v @@ ConstantArray[0, rank];
+	G[isrep[_]] := False;
+	G[isrep[r_v]] := SURepresentations`validWeight[n, List @@ r];
+	G[dim[r_v]] /; G[isrep[r]] := dimension["A", rank, List @@ r];
+	G[dual[r_v]] /; G[isrep[r]] := v @@ Prepend[r[[1]] - Reverse[Rest[List @@ r]], r[[1]]];
+	G[minrep[a_v, b_v]] /; G[isrep[a]] && G[isrep[b]] :=
+		First @ SortBy[{a, b}, {Total[List @@ #] &, (-(List @@ #)) &}];
+	G[prod[a_v, b_v]] /; G[isrep[a]] && G[isrep[b]] :=
+		G[prod[a, b]] = G[prod[b, a]] = (v @@ # & /@ decompose @
+			productReps[irrep["A", rank, List @@ a], irrep["A", rank, List @@ b]]);
+	G[gG] = {};
+	G[gA] = Array[G[gen[#]] &, 2 rank];
+	G[gen[j_Integer]][r_v] /; 1 <= j <= 2 rank && G[isrep[r]] := Module[{m},
+		m = SURepresentations`matrices[n, List @@ r];
+		If[m === $Failed, $Failed, G[gen[j]][r] = NGroupInfo`Private`num[m[[j]]]]
+	];
+	G
+]]
+
+getSU[n_] := (Message[getSU::degree, n]; $Failed)
 
 getSO[3] := getSO[3] = AbortProtect @ Module[{G},
 	G = so[3];
@@ -120,6 +160,10 @@ getSO[2] := getSO[2] = AbortProtect @ Module[{G},
 	G[minrep[v[n_], v[m_]]] := v[Min[n, m]];
 	G
 ]
+
+lieCheck = NGroupInfo`Private`checkPrec
+lieNumber = NGroupInfo`Private`num
+Get["lie-groups.m"]
 
 End[ ]
 
