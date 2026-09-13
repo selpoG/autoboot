@@ -96,6 +96,13 @@ See [Lie groups](doc/LieGroups.md) for conventions, supported ranks and examples
 Reproducible bootstrap benchmarks and end-to-end checks are described in
 [Lie group timing and validation](doc/LieGroups.md#end-to-end-bootstrap-checks-and-timing).
 
+### Spinning correlators
+
+A separate 3d spacetime-structure API and a blocks_3d-to-SDPB adapter are
+available for identical long primaries, with a four-Majorana example. See
+[Spinning bootstrap](doc/SpinningBootstrap.md) for conventions, validation,
+and the current limitations on conserved operators and mixed correlators.
+
 ### Irreps
 
 Please see [IrrepLabels.md](/doc/IrrepLabels.md).
