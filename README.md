@@ -62,7 +62,10 @@ More formally, groups which we can treat as a global symmetry of CFT are defined
 ```EBNF
 $group = $finite_group | $lie_group | pGroup[$group,$group]
 $finite_group = group[$n,$n] | dih[$n] | dic[$n]
-$lie_group = su[2] | so[2] | so[3] | o[2] | o[3] | su[4]
+$lie_group = su[$degree] | so[$degree] | spin[$spin_degree] | sp[$n] | lie[$type,$rank] | o[$degree]
+$spin_degree = integer_at_least_4
+$type,$rank = supported_finite_Cartan_type_and_rank
+$degree = integer_at_least_2
 $n = positive_integer
 ```
 
@@ -75,6 +78,23 @@ Once you get a group `G`:
 1. Get bootstrap equations by `bootAll[]`. If you need human-readable format, use `format[...]`.
 
 1. *(Optionally)* You can get a Python code for [cboot](https://github.com/tohtsky/cboot) by `toCboot[makeSDP[eq]]`.
+
+For `getSU[n]`, `n` is the degree (the Lie algebra rank is `n-1`). Both exact
+and numerical modes support all integer `n >= 2`. SU(2) retains spin labels;
+SU(n) for `n >= 3` uses Young diagram row lengths `v[l1,...,l(n-1)]`.
+Generator matrices are built lazily from tensor products of exterior powers.
+Large highest weights can require substantial memory and time in either mode;
+the numerical mode converts the shared exact matrices to the configured precision.
+
+SO(n), Spin(n), compact Sp(n), and the exceptional groups are also supported
+in both modes. For example, `getSO[5]`, `getSpin[6]`, `getSp[2]`, and
+`getLie["G",2]` return group objects. `getLie[type,rank]` supports all finite
+Cartan types A–G, including E6, E7 and E8. These new constructors use Dynkin
+labels; SO rejects spinor labels that do not descend from Spin.
+See [Lie groups](doc/LieGroups.md) for conventions, supported ranks and examples.
+
+Reproducible bootstrap benchmarks and end-to-end checks are described in
+[Lie group timing and validation](doc/LieGroups.md#end-to-end-bootstrap-checks-and-timing).
 
 ### Irreps
 
@@ -109,3 +129,10 @@ repToTeX[rep[n_]] := TemplateApply["\\mathbf{`n`}", <|"n" -> n|>]
 (* you can paste printed string to your latex file *)
 Print[toTeX[eq]]
 ```
+
+Larger classical-group bootstrap examples and independent GAP / CG reference
+checks are documented in [doc/LargeValidation.md](doc/LargeValidation.md).
+Run `make test-large` for the extended exact/numerical integration suite.
+
+General O(n), including the disconnected reflection component, is described
+in [doc/OrthogonalGroups.md](doc/OrthogonalGroups.md).

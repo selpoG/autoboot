@@ -129,6 +129,8 @@ clearCG[] := (Unprotect[Evaluate[allPublicSymbol]]; Unprotect[symmetryGroup, one
 
 op[x_, r_] := op[x, r, 1, 1]
 
+(* Schur orthogonality: the singlet multiplicity needs no full product. *)
+inv[{r_,s_},{t_}] /; t === id := If[s === dual[r], 1, 0]
 x:inv[{r_, s_}, {t_}] := myAbortProtect[x = If[KeyExistsQ[prod[r, s], t], prod[r, s][t], 0]]
 x:inv[r_, s_, t_] := myAbortProtect[x = inv[{r, s}, {dual[t]}]]
 x:inv[r1_, r2_, r3_, r4_] := myAbortProtect[x = Module[{s}, Association @ Table[
@@ -157,35 +159,36 @@ Module[{a, b, c, x, y, z, X, g, e, d1 = dim[r], d2 = dim[s], d3 = dim[t], d},
 	]
 ]
 
+cgSolutions[r_,s_,t_] := Module[{sol},
+	sol = symmetryGroup[LieRepresentations`intertwiners[r,s,t]];
+	If[ListQ[sol] && Length[sol] == inv[{r,s},{t}] &&
+		AllTrue[sol, Length[#] == dim[r] dim[s] dim[t] && VectorQ[#,NumericQ] &],
+		sol, NullSpace @ eq[r,s,t]]
+];
+
 x:setOPE[r_, r_, t_] /; inv[{r, r}, {t}] > 0 := x =
 Module[{sol, a, b, c, d = dim[r], d3 = dim[t], l, n, sym, tmp, v, p, even, odd},
-	sym[v_, p_] := (
-		tmp = v;
-		Do[tmp[[d d3 (a - 1) + d3 (b - 1) + c]] += p v[[d d3 (b - 1) + d3 (a - 1) + c]], {a, d}, {b, d}, {c, d3}];
-		Expand[tmp]);
-	l = Length[sol = NullSpace @ eq[r, r, t]];
+	sym[v_, p_] := Expand[v + p Flatten[Transpose[ArrayReshape[v,{d,d,d3}],{2,1,3}]]];
+	l = Length[sol = cgSolutions[r,r,t]];
 	If[l == 0, Message[setOPE::imcmpt, r, r, t]; Return[]];
 	If[l != inv[{r, r}, {t}], Message[setOPE::diff, r, r, t, l, inv[{r, r}, {t}]]; Return[]];
 	even = Select[simp @ Orthogonalize[simp[sym[#,  1] & /@ sol], simp[Conjugate[#1].#2] &], AnyTrue[#, simp @ # != 0 &] &];
 	odd  = Select[simp @ Orthogonalize[simp[sym[#, -1] & /@ sol], simp[Conjugate[#1].#2] &], AnyTrue[#, simp @ # != 0 &] &];
 	l = Length[even];
 	myAbortProtect[
-		Do[ope[r, r, t][n][a, b, c] = even[[n, d d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
-		, {n, l}, {a, d}, {b, d}, {c, d3}];
-		Do[ope[r, r, t][n + l][a, b, c] = odd[[n, d d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
-		, {n, Length[odd]}, {a, d}, {b, d}, {c, d3}];
+		opeTensor[r,r,t] = SparseArray @ ArrayReshape[Sqrt[d3] Join[even,odd], {Length[even]+Length[odd],d,d,d3}];
 		\[Sigma][r, r, dual[t]][n_] := If[n <= l, 1, -1]]
 ]
 
 x:setOPE[r_, s_, t_] /; inv[{r, s}, {t}] > 0 := x = setOPE[s, r, t] =
 Module[{sol, a, b, c, d1 = dim[r], d2 = dim[s], d3 = dim[t], l, n},
-	l = Length[sol = NullSpace @ eq[r, s, t]];
+	l = Length[sol = cgSolutions[r,s,t]];
 	If[l == 0, Message[setOPE::imcmpt, r, s, t]; Return[]];
 	If[l != inv[{r, s}, {t}], Message[setOPE::diff, r, s, t, l, inv[{r, s}, {t}]]; Return[]];
 	sol = simp @ Orthogonalize[sol, simp[Conjugate[#1].#2] &];
 	myAbortProtect[
-		Do[ope[r, s, t][n][a, b, c] = ope[s, r, t][n][b, a, c] = sol[[n, d2 d3 (a - 1) + d3 (b - 1) + c]] Sqrt[d3]
-		, {n, l}, {a, d1}, {b, d2}, {c, d3}];
+		opeTensor[r,s,t] = SparseArray @ ArrayReshape[Sqrt[d3] sol, {l,d1,d2,d3}];
+		opeTensor[s,r,t] = Transpose[opeTensor[r,s,t], {1,3,2,4}];
 		\[Sigma][r, s, dual[t]][_] := 1;
 		\[Sigma][s, r, dual[t]][_] := 1]
 ]
@@ -195,31 +198,40 @@ setOPE::imcmpt = "setOPE[`1`,`2`,`3`]: There is no compatible CG coefficient.";
 setOPE::diff = "setOPE[`1`,`2`,`3`]: The dimension of CG coefficients is `4`, which must be `5`.";
 ope[r_, i_, r_][1][a_, 1, b_] /; i === id := If[a == b, 1, 0]
 ope[i_, r_, r_][1][1, a_, b_] /; i === id := If[a == b, 1, 0]
-x:ope[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[{r, s}, {t}] := (setOPE[r, s, t]; x)
+x:ope[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[{r, s}, {t}] := (setOPE[r, s, t]; opeTensor[r,s,t][[n,a,b,c]])
 ope[_, _, _][_][_, _, _] := 0
 
-x:setOPE[r_] := x = Module[{r2 = dual[r], a, b, d = dim[r], sd},
-	sd = Sqrt[d]; myAbortProtect @ Do[ope[r][a, b] = simp[sd ope[r, r2, id][1][a, b, 1]], {a, d}, {b, d}]]
-x:ope[r_][a_, b_] := (setOPE[r]; x)
+(* Cache tensors as sparse arrays, including the analytic identity maps. *)
+opeTensor[r_,i_,r_] /; i === id := opeTensor[r,i,r] =
+	SparseArray[Table[{1,a,1,a}->1,{a,dim[r]}],{1,dim[r],1,dim[r]}];
+opeTensor[i_,r_,r_] /; i === id := opeTensor[i,r,r] =
+	SparseArray[Table[{1,1,a,a}->1,{a,dim[r]}],{1,1,dim[r],dim[r]}];
+opeTensor[r_,s_,t_] := (setOPE[r,s,t]; opeTensor[r,s,t]);
 
-x:setCor[r_, s_, t_] := x = Module[{n, a, b, c, c2, d = dim[t], sd, t2 = dual[t], res},
-	sd = Sqrt[d];
-	Do[res[n, a, b, c] = simp[Sum[ope[r, s, t2][n][a, b, c2] ope[t2][c2, c], {c2, d}] / sd]
-	, {n, inv[r, s, t]}, {a, dim[r]}, {b, dim[s]}, {c, d}];
-	myAbortProtect @ Do[cor[r, s, t][n][a, b, c] = res[n, a, b, c]
-	, {n, inv[r, s, t]}, {a, dim[r]}, {b, dim[s]}, {c, d}];
+x:setOPE[r_] := x = (opeMetric[r] = simp[Sqrt[dim[r]] ArrayReshape[opeTensor[r,dual[r],id],{dim[r],dim[r]}]];)
+x:ope[r_][a_, b_] := (setOPE[r]; opeMetric[r][[a,b]])
+
+x:setCor[r_, s_, t_] := x = Module[{d = dim[t], count = inv[r,s,t]},
+	setOPE[dual[t]];
+	corTensor[r,s,t] = simp @ ArrayReshape[
+		ArrayReshape[opeTensor[r,s,dual[t]], {count dim[r] dim[s],d}].opeMetric[dual[t]]/Sqrt[d],
+		{count,dim[r],dim[s],d}];
 ]
-x:cor[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[r, s, t] := (setCor[r, s, t]; x)
+x:cor[r_, s_, t_][n_][a_, b_, c_] /; 1 <= n <= inv[r, s, t] := (setCor[r,s,t]; corTensor[r,s,t][[n,a,b,c]])
 cor[_, _, _][_][_, _, _] := 0
 
-x:setCor[r1_, r2_, r3_, r4_, s_] := x = Module[{n, m, a1, a2, a3, a4, s2 = dual[s], res},
-	Do[res[n, m, a1, a2, a3, a4] = simp @ Sum[cor[r1, r2, s2][n][a1, a2, b] ope[r3, r4, s2][m][a3, a4, b], {b, dim[s]}]
-	, {n, inv[{r1, r2}, {s}]}, {m, inv[r3, r4, s]}, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}];
-	myAbortProtect @ Do[cor[r1, r2, r3, r4][s, n, m][a1, a2, a3, a4] = res[n, m, a1, a2, a3, a4],
-		{n, inv[{r1, r2}, {s}]}, {m, inv[r3, r4, s]}, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}];
+x:setCor[r1_, r2_, r3_, r4_, s_] := x = Module[{n,m,left,right,d = dim[s]},
+	setCor[r1,r2,dual[s]];
+	left = corTensor[r1,r2,dual[s]]; right = opeTensor[r3,r4,dual[s]];
+	corTensor[r1,r2,r3,r4,s] = SparseArray @ Table[
+		simp @ ArrayReshape[
+			ArrayReshape[left[[n]],{dim[r1] dim[r2],d}].Transpose[ArrayReshape[right[[m]],{dim[r3] dim[r4],d}]],
+			{dim[r1],dim[r2],dim[r3],dim[r4]}],
+		{n,inv[{r1,r2},{s}]},{m,inv[r3,r4,s]}];
 ]
 x:cor[r1_, r2_, r3_, r4_][s_, n_, m_][a1_, a2_, a3_, a4_] /;
-	1 <= n <= inv[{r1, r2}, {s}] && 1 <= m <= inv[r3, r4, s] := (setCor[r1, r2, r3, r4, s]; x)
+	1 <= n <= inv[{r1, r2}, {s}] && 1 <= m <= inv[r3, r4, s] :=
+	(setCor[r1,r2,r3,r4,s]; corTensor[r1,r2,r3,r4,s][[n,m,a1,a2,a3,a4]])
 cor[_, _, _, _][_, _, _][_, _, _, _] := 0
 
 (* decompose invariant tensor f into linear combination of cor[r,s,t][n]. *)
@@ -230,51 +242,32 @@ dec[r_, s_, t_][f_] := Module[{vec},
 dec could be done by just taking inner-product, but most of cor[r,s,t][n][a,b,c] are zero, we need decPrep for more efficiency.
 bas[r,s,t] are sufficient components to distinguish invariant tensors.
 mat is a matrix whose components are values of cor[r,s,t][n] evaluated at bas[r,s,t], and invmat is its inverse. *)
-x:decPrep[r_, s_, t_] /; inv[r, s, t] > 0 := x =
-Module[{n, f = cor[r, s, t], max = inv[r, s, t], mat, rev, new, old, sc, a, b, c, tmp, tmp2, res},
-	Do[If[f[1][a, b, c] != 0, res[1] = {a, b, c}; mat = {{f[1][a, b, c]}}; rev = Inverse[mat]; Break[]]
-	, {a, dim[r]}, {b, dim[s]}, {c, dim[t]}];
-	Do[Do[
-		new = Array[{f[n] @@ res[#]} &, n - 1];
-		old = {Array[f[#][a, b, c] &, n - 1]};
-		sc = f[n][a, b, c];
-		tmp2 = rev.new;
-		If[(tmp = simp[sc - (old.tmp2)[[1, 1]]]) != 0,
-			res[n] = {a, b, c};
-			mat = ArrayFlatten[{{mat, new}, {old, {{sc}}}}];
-			rev = ArrayFlatten[{{rev + tmp2.old.rev / tmp, -tmp2 / tmp}, {-old.rev / tmp, {{1 / tmp}}}}];
-			Break[]]
-	, {a, dim[r]}, {b, dim[s]}, {c, dim[t]}], {n, 2, max}];
-	Assert[simp[rev.mat] == IdentityMatrix[max]];
-	rev = simp @ rev;
-	myAbortProtect[invmat[r, s, t] = rev; Do[bas[r, s, t][n] = res[n], {n, max}]]
-]
+(* Select interpolation components from sparse tensor rows. This avoids
+   enumerating every zero component through the scalar cor API. *)
+prepareComponents[rows_,shape_] := Module[{echelon={},pivots={},row,rules,pivot,mat,coords},
+ Do[row=rows[[n]];
+  Do[row=simp[row-row[[pivots[[j]]]] echelon[[j]]],{j,n-1}];
+  rules=Select[Most[ArrayRules[row]],Last[#]!=0&];
+  If[rules=={},Message[prepareComponents::dependent];Return[$Failed]];
+  pivot=First[First[First[rules]]];AppendTo[pivots,pivot];AppendTo[echelon,simp[row/row[[pivot]]]],
+ {n,Length[rows]}];
+ mat=Table[rows[[j]][[pivots[[i]]]],{i,Length[rows]},{j,Length[rows]}];
+ coords=Table[Table[1+Mod[Quotient[p-1,Times@@Drop[shape,k]],shape[[k]]],{k,Length[shape]}],{p,pivots}];
+ {simp[Inverse[mat]],coords}];
+prepareComponents::dependent="Invariant tensors are linearly dependent at the working precision.";
+x:decPrep[r_,s_,t_] /; inv[r,s,t]>0 := x=Module[{data,n},
+ setCor[r,s,t];
+ data=prepareComponents[Table[Flatten[corTensor[r,s,t][[n]]],{n,inv[r,s,t]}],{dim[r],dim[s],dim[t]}];
+ myAbortProtect[invmat[r,s,t]=data[[1]];Do[bas[r,s,t][n]=data[[2,n]],{n,inv[r,s,t]}]]];
 
 dec[r1_, r2_, r3_, r4_][f_] := Module[{vec, t = {r1, r2, r3, r4}},
 	decPrep @@ t;
 	vec = Array[{f @@ ((bas @@ t)[#])} &, Length[invs @@ t]];
 	simp @ Flatten[(invmat @@ t).vec]]
-x:decPrep[r1_, r2_, r3_, r4_] := x =
-Module[{f = cor[r1, r2, r3, r4], mat, rev, new, old, sc, a1, a2, a3, a4, t,
-	ks = invs[r1, r2, r3, r4], k, res, tmp, tmp2},
-	Do[t = {a1, a2, a3, a4};
-		If[(new = (f @@ First[ks]) @@ t) != 0, res[1] = t; mat = {{new}}; rev = Inverse[mat]; Break[]]
-	, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}];
-	Do[Do[
-		t = {a1, a2, a3, a4}; k = ks[[n]];
-		new = Array[{(f @@ k) @@ res[#]} &, n - 1];
-		old = {Array[(f @@ ks[[#]]) @@ t &, n - 1]};
-		sc = (f @@ k) @@ t;
-		tmp2 = rev.new;
-		If[(tmp = simp[sc - (old.tmp2)[[1, 1]]]) != 0,
-			res[n] = t;
-			mat = ArrayFlatten[{{mat, new}, {old, {{sc}}}}];
-			rev = ArrayFlatten[{{rev + tmp2.old.rev / tmp, -tmp2 / tmp}, {-old.rev / tmp, {{1 / tmp}}}}];
-			Break[]]
-	, {a1, dim[r1]}, {a2, dim[r2]}, {a3, dim[r3]}, {a4, dim[r4]}], {n, 2, Length[ks]}];
-	rev = simp @ rev;
-	myAbortProtect[invmat[r1, r2, r3, r4] = rev; Do[bas[r1, r2, r3, r4][n] = res[n], {n, Length[ks]}]]
-]
+x:decPrep[r1_,r2_,r3_,r4_] := x=Module[{ks=invs[r1,r2,r3,r4],rows,data,n},
+ rows=Table[setCor[r1,r2,r3,r4,k[[1]]];Flatten[corTensor[r1,r2,r3,r4,k[[1]]][[k[[2]],k[[3]]]]],{k,ks}];
+ data=prepareComponents[rows,{dim[r1],dim[r2],dim[r3],dim[r4]}];
+ myAbortProtect[invmat[r1,r2,r3,r4]=data[[1]];Do[bas[r1,r2,r3,r4][n]=data[[2,n]],{n,Length[ks]}]]];
 
 \[Sigma][r_, i_, r_][1] /; i === id := 1
 \[Sigma][i_, r_, r_][1] /; i === id := 1
@@ -297,15 +290,21 @@ x:\[Tau][r_, s_, t_][n_, m_] /; 1 <= n <= inv[r, s, t] && 1 <= m <= inv[r, s, t]
 \[Tau][_, _, _][n_, n_] := 1
 \[Tau][_, _, _][_, _] := 0
 
-x:setOmega[r_, s_, t_] := x = Module[{n, m, l = inv[r, s, t], v, f, res},
-	Do[
-		f[a_, b_, c_] := simp @
-			Sum[ope[dual[r]][a2, a] ope[dual[s]][b2, b] ope[dual[t]][c2, c] Conjugate[cor[dual[r], dual[s], dual[t]][m][a2, b2, c2]]
-			, {a2, dim[r]}, {b2, dim[s]}, {c2, dim[t]}];
-		v = dec[r, s, t][f];
-		Do[res[n, m] = v[[n]], {n, l}]
-	, {m, l}];
-	myAbortProtect @ Do[\[Omega][r, s, t][n, m] = res[n, m], {m, l}, {n, l}]]
+(* Contract one metric at a time. The old scalar Sum visited every zero
+   entry again at every interpolation point of dec. *)
+applyThreeMetrics[tensor_,metrics_] := Module[{data=tensor,perm,dims},
+ Do[perm=Range[3];perm[[{1,axis}]]=perm[[{axis,1}]];
+  data=Transpose[data,perm];dims=Dimensions[data];
+  data=simp[ArrayReshape[Transpose[metrics[[axis]]].ArrayReshape[data,{First[dims],Times@@Rest[dims]}],dims]];
+  data=Transpose[data,perm],{axis,3}];data];
+x:setOmega[r_, s_, t_] := x = Module[{n,m,l=inv[r,s,t],v,f,res,metrics,tensor},
+ setCor[dual[r],dual[s],dual[t]];
+ Scan[setOPE,{dual[r],dual[s],dual[t]}];
+ metrics=opeMetric/@{dual[r],dual[s],dual[t]};
+ Do[tensor=applyThreeMetrics[Conjugate[corTensor[dual[r],dual[s],dual[t]][[m]]],metrics];
+  f[a_,b_,c_]:=tensor[[a,b,c]];
+  v=dec[r,s,t][f];Do[res[n,m]=v[[n]],{n,l}],{m,l}];
+ myAbortProtect@Do[\[Omega][r,s,t][n,m]=res[n,m],{m,l},{n,l}]]
 x:\[Omega][r_, s_, t_][n_, m_] /; 1 <= n <= inv[r, s, t] && 1 <= m <= inv[r, s, t] := (setOmega[r, s, t]; x)
 \[Omega][_, _, _][n_, n_] := 1
 \[Omega][_, _, _][_, _] := 0
@@ -325,6 +324,14 @@ x:six[r1_, r2_, r3_, r4_][s_, n_, m_, t_, k_, l_] /;
 	(setSix[r1, r2, r3, r4]; x)
 six[_, _, _, _][_, _, _, _, _, _] := 0
 
+(* Algebraic tensor entries need canonical arithmetic, not repeated general
+   symbolic searches over a whole dense tensor. Preserve sparsity and share
+   simplifications of repeated entries. Symbolic bootstrap expressions retain
+   the general simplifier. *)
+algebraicSimplify[x_] := algebraicSimplify[x] = RootReduce[x];
+simp[x_?NumericQ] := algebraicSimplify[x];
+simp[x_List] := simp /@ x;
+simp[x_SparseArray] := SparseArray[(First[#] -> simp[Last[#]] &) /@ ArrayRules[x], Dimensions[x]];
 simp[x_] := FullSimplify @ Expand @ x
 
 isReal[r_] := dual[r] === r && \[Sigma][r] == 1

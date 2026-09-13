@@ -1,11 +1,13 @@
 # Labels for Irreps
 
+- [Other Lie groups: Dynkin labels](LieGroups.md#representation-labels)
 - [`G=group[g,i]`](#ggroupgi)
 - [`G=so[2]`](#gso2)
 - [`G=o[2]`](#go2)
 - [`G=so[3]`](#gso3)
 - [`G=o[3]`](#go3)
 - [`G=su[2]`](#gsu2)
+- [`G=su[N]` (`N >= 3`)](#general-su)
 - [`G=su[4]`](#gsu4)
 - [`G=dih[N]` (`N`: even)](#gdihn-n-even)
 - [`G=dih[N]` (`N`: odd)](#gdihn-n-odd)
@@ -64,7 +66,19 @@ All irreps are labeled by `v[n]` (`n=0,1/2,1,3/2,...`).
 
 `v[n]` is the spin-n representation, which dimension is `2*n+1`.
 
-`G[id]` is `v[0]` and the standard vector representation is `v[1]`.
+`G[id]` is `v[0]` and the defining two-dimensional representation is `v[1/2]`.
+
+<a id="general-su"></a>
+## `G=su[N]` (`N >= 3`)
+
+In both exact and numerical mode, irreps are `v[l1,...,l(N-1)]`, with
+nonnegative integer row lengths `l1 >= ... >= l(N-1)`. These are Young diagram
+row lengths, not Dynkin labels; the Dynkin labels are successive differences
+`{l1-l2,...,l(N-2)-l(N-1),l(N-1)}`.
+
+The trivial irrep has all zero entries. The defining irrep is `v[1,0,...,0]`,
+its dual is `v[1,1,...,1]`, and the adjoint is `v[2,1,...,1]`.
+SU(2) continues to use the spin labels described above.
 
 ## `G=su[4]`
 
@@ -114,3 +128,7 @@ All irreps are labeled by `rep[r1,r2]`
 `rep[r1,r2]` is a external tensor product of `r1` and `r2`.
 
 `G[id]` is `rep[G1[id],G2[id]]`.
+
+For `getO[n]` with n >= 4, use `v[a1,...,ar,p]`, where r=Floor[n/2].
+The last entry is +/-1 for an extension, or 0 for a canonical induced pair.
+See [OrthogonalGroups.md](OrthogonalGroups.md) for validity conditions and examples.

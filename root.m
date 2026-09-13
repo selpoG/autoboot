@@ -72,13 +72,16 @@ dimension[type_, rank_, \[Lambda]_] :=
 	Product[bilinear[type, rank][\[Lambda] + \[Rho][type, rank], a], {a, positiveRoots[type, rank]}] /
 	Product[bilinear[type, rank][\[Rho][type, rank], a], {a, positiveRoots[type, rank]}]
 
+SetAttributes[monitor, HoldAll]
+monitor[expr_, status_] := If[$FrontEnd === Null, expr, Monitor[expr, status]]
+
 x:irrep[type_, rank_, \[Lambda]_] := Module[{ans},
 	ans = MyReap @ Module[{
 		queue = newPQueue[lexComp], w, set = <||>, sum, \[Alpha], k,
 		bi = bilinear[type, rank], nm = norm[type, rank], \[Rho] = \[Rho][type, rank], denom, add},
 		add[k_] := If[!KeyMemberQ[set, k], enqueue[queue, k]; True, False];
 		add[\[Lambda]];
-		Monitor[While[size[queue] > 0,
+		monitor[While[size[queue] > 0,
 			w = dequeue[queue];
 			If[KeyMemberQ[set, w], Continue[]];
 			If[w === \[Lambda],

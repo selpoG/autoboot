@@ -3,7 +3,7 @@
 Supported groups are direct products of finite groups and some Lie groups.
 Supported finite groups are those whose irreps was calculated by `GAP` (in `sgd/`),
 and any dihedral and quartenion groups.
-Supported Lie groups are `su[2]`, `su[4]`, `so[2]`, `o[2]`, `so[3]`, `o[3]`.
+Supported Lie groups include `su[n]`, `so[n]`, `spin[n]`, `sp[n]`, and all finite Cartan types through `getLie[type,rank]`, as well as general `o[n]` including reflections. See [Lie groups](LieGroups.md) for valid ranks and representation labels.
 We support only compact groups, so we can assume any finite dimensional irrep can be unitarized.
 
 This package imports `groupd.m` and `grouplie.m`.
@@ -183,30 +183,41 @@ All irrep-objects of `G=so[2]` are `v[x]` (`x \in \mathbb{R}`).
 
 ### `getSU`
 
-`getSU[n]` returns group-object `su[n]` which represents the special unitary group of rank `n`.
-`n` must be `2,4`.
+`getSU[n]` returns group-object `su[n]` which represents the special unitary group of degree `n` (rank `n-1`).
+`n` must be an integer >= 2 in both exact and numerical mode.
+For `n >= 3`, see [Young diagram labels](IrrepLabels.md#general-su).
 
 ### `getO`
 
-`getO[n]` returns group-object `o[n]` which represents the orthogonal group of rank `n`.
-`n` must be `2,3`.
+`getO[n]` returns O(n), for integer degree `n >= 2`. O(2)/O(3) retain their
+labels; higher degrees use Dynkin labels plus an extension/induced-pair label.
+See [OrthogonalGroups.md](OrthogonalGroups.md).
 
 ### `getSO`
 
-`getSO[n]` returns group-object `su[n]` which represents the special orthogonal group of rank `n`.
-`n` must be `2,3`.
+`getSO[n]` returns the special orthogonal group `so[n]`, for integer `n >= 2`.
+SO(2) and SO(3) retain their existing labels. For `n >= 4`, irreps use Dynkin
+labels restricted to representations that descend from Spin(n).
+
+### `getSpin`, `getSp`, `getLie`
+
+`getSpin[n]` (integer `n >= 4`) includes spinor representations.
+`getSp[n]` (integer `n >= 1`) is compact Sp(n), with defining dimension `2n`.
+`getLie[type,rank]` constructs the simply connected compact group of the given
+finite Cartan type. All three use Dynkin labels in both exact and numerical mode.
+See [Lie groups](LieGroups.md) for details.
 
 ### `su`
 
-`su[n]` is a group-object which is the special unitary group of rank `n`.
+`su[n]` is a group-object which is the special unitary group of degree `n` (rank `n-1`).
 Before using this value, you have to call `getSU[n]` to get proper group-object.
 
 ### `o`
 
-`o[n]` is a group-object which is the orthogonal group of rank `n`.
+`o[n]` is a group-object which is the orthogonal group of degree `n`.
 Before using this value, you have to call `getO[n]` to get proper group-object.
 
 ### `so`
 
-`so[n]` is a group-object which is the special orthogonal group of rank `n`.
+`so[n]` is a group-object which is the special orthogonal group of degree `n`.
 Before using this value, you have to call `getSO[n]` to get proper group-object.
