@@ -109,3 +109,10 @@ repToTeX[rep[n_]] := TemplateApply["\\mathbf{`n`}", <|"n" -> n|>]
 (* you can paste printed string to your latex file *)
 Print[toTeX[eq]]
 ```
+
+## Versioning and citation
+
+See [VERSION](VERSION) for the current version and [CITATION.cff](CITATION.cff)
+for software and paper citation information. Releases follow
+[Semantic Versioning](https://semver.org/); maintainer instructions are in
+[Releasing](doc/Releasing.md).

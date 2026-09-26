@@ -11,6 +11,7 @@ for command in dotnet gap make python3; do
 	fi
 done
 
+python3 "$repo/test/check-version.py"
 python3 "$repo/test/check-pseudoreal-source.py"
 make -C "$repo/GAPToMathematica"
 
