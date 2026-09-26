@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  If you use autoboot, please cite this software and the accompanying paper
+  listed in references.
+type: software
+version: "1.0.0"
+date-released: "2026-09-26"
+title: "autoboot: A generator of bootstrap equations with global symmetry"
+authors:
+  - family-names: Go
+    given-names: Mocho
+    orcid: "https://orcid.org/0009-0000-8123-9408"
+repository-code: "https://github.com/selpoG/autoboot"
+url: "https://github.com/selpoG/autoboot"
+license: MIT
+abstract: >-
+  autoboot is a Mathematica package for generating conformal bootstrap
+  equations for scalar correlation functions with global symmetry.
+  It computes group-theoretic data and assembles mixed-correlator crossing
+  equations for numerical bootstrap calculations.
+keywords:
+  - conformal bootstrap
+  - conformal field theory
+  - global symmetry
+  - Mathematica
+references:
+  - type: article
+    title: "autoboot: A generator of bootstrap equations with global symmetry"
+    authors:
+      - family-names: Go
+        given-names: Mocho
+        orcid: "https://orcid.org/0009-0000-8123-9408"
+      - family-names: Tachikawa
+        given-names: Yuji
+    journal: Journal of High Energy Physics
+    year: 2019
+    doi: "10.1007/JHEP06(2019)084"

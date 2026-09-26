@@ -109,3 +109,23 @@ repToTeX[rep[n_]] := TemplateApply["\\mathbf{`n`}", <|"n" -> n|>]
 (* you can paste printed string to your latex file *)
 Print[toTeX[eq]]
 ```
+
+## Versioning and citation
+
+The current release version is recorded in [VERSION](VERSION). Stable releases
+follow [Semantic Versioning](https://semver.org/): backward-compatible fixes
+increment PATCH, backward-compatible features increment MINOR, and incompatible
+changes to the documented public API increment MAJOR. The documented group
+constructors, representation labels, operator registration, crossing-equation
+and export interfaces form the public API; private implementation details do not.
+
+Before a release, update `VERSION`, the software `version` in `CITATION.cff`,
+and `.zenodo.json` together, and set `date-released` in `CITATION.cff`.
+Run `make test`, then check the intended tag with
+`python3 test/check-version.py --tag vX.Y.Z`. Create the tag on that validated
+commit and publish a GitHub release. Published tags must not be moved.
+CI also checks version consistency for release tags.
+
+[CITATION.cff](CITATION.cff) describes the software and its accompanying paper.
+[.zenodo.json](.zenodo.json) supplies the software metadata, author ORCID, and
+related paper for Zenodo's GitHub release archiving.
