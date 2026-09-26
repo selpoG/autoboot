@@ -1,5 +1,7 @@
 # autoboot
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22979119.svg)](https://doi.org/10.5281/zenodo.22979119)
+
 Automatical Generator of Conformal Bootstrap Equation
 
 For more information, see
@@ -111,6 +113,8 @@ Print[toTeX[eq]]
 ```
 
 ## Versioning and citation
+
+The DOI badge above represents all versions of this software.
 
 See [VERSION](VERSION) for the current version and [CITATION.cff](CITATION.cff)
 for software and paper citation information. Releases follow
